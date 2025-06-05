@@ -1,2 +1,2 @@
 # notes
-justfor write and read
+just for take notes and read

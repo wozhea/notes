@@ -1,19 +1,3 @@
-搞清楚多比特跨时钟域处理方法，fifo
-
-
-接收机解调过程sync_long，
-各种因素对csi计算的影响，最后该怎么对csi处理去噪相位纠正
-axis协议传输csi
-单路/两路如何提取信息
-tx_bit_intf
-跨时钟域传输
-
-
-
-tcl脚本
-
-
-
 意义：
 无人机群远距离网络，机间链路协作，物理层，全双工CSMA/CA设计，动态路由协议
 CSI感知，机上雷达，同感一体化
@@ -35,8 +19,6 @@ openwifi属于softmac架构，管理、控制帧通过mac80211协议栈控制，lowmac的csma/ca、cc
 sdr_driver数据先交给axis_dma，dma核和tx_intf RTL模块用axis总线相连，tx_intf进行队列管理等功能，收到来自XPU的可以发送、时间戳等标志和数据后把数据、发射参数交给PMD物理层发射机openofdm_tx，openofdm_tx进行物理层编码调制组帧后把数据交给tx_iq_intf和dac_intf最后交给ad9361发射。
 ad9361实时接收电磁波后，经adc_intf和rx_iq_intf后得到IQ数据交给openofdm_rx接收机得到整个帧的结构和数据，把一系列参数交给pl_to_m_axis RTL模块用于处理mac80211需要的数据如rssi报告、时间戳报告、工作参数等信息；帧数据交给XPU模块，进行MAC帧解析，交给tx_control发射控制模块，交给csma_ca虚拟载波侦听和冲突避免模块，经过过滤把mac头信息交给pl_to_m_axis；
 从ad9361获得实时agc增益对从IQ数据算得的rssi进行补偿，把实际的信号强度交给pl_to_m_axis和cca信道清除评估模块，物理上信道空闲后把标志位给csma模块。
-
-
 
 ### glossary:
 RTS/CTS：request to send;clear to send，clear to send
@@ -353,18 +335,12 @@ struct ieee80211_rx_status {
 ![mac_class1](./picture/MAC_class1.JPG)
 ![mac_class2](./picture/MAC_class2.JPG)
 ![mac_class3](./picture/MAC_class3.JPG)
-
-
 ![mac_frame_format](./picture//mac_frame_format.JPG);
 ![control_field](./picture//control_field.JPG)
 Address 2, Address 3, Sequence Control, Address 4,和Frame Body字段只在某些帧中出现
 
 Type(management,control,data)和Subtype字段共同决定MAC帧类型，To DS为1则表示帧发往DS(distributing system，即AP),From DS表示来自DS
-
-
-![duration_field](./picture/duration_field.JPG)
-
-duration表示 微秒
+![duration_field](./picture/duration_field.JPG)duration表示 微秒
 
 Address：
 可能包含BSSID：一个按规则生成的46位随机数
@@ -376,6 +352,7 @@ Sequence Control:
 FCS：
 32位CRC
 
+
 #### control frames
 RTS帧
 ![RTS_frame](./picture/RTS_frame.JPG)
@@ -386,27 +363,35 @@ ACK帧
 还有PS-Poll(Power-Save Poll)、CF-End(contension Free-End)、CF-ACK等等
 
 
+CTS/RTS不是每帧都需要建立连接，对于过短数据长度的帧可能没有rts/cts建立，该机制可以在dot11RTSThreshold attribute设为always、never、or 超过length threshold
+CTS/RTS帧，在duration字段包含传输和ACK所的占用信道时间(us)，可以被所有sta接收，用来更新每个sta的nav长度，
+
+
+
 #### data frames
-
 ![DATA_frames](./picture/DATA_frames.JPG)
-
-
-
 #### management frames
-
 ![management_frames](./picture/management_frames.JPG)
 有Beacon帧、IBSS ATIM帧(Announcement Traffic Indication Message)帧、Disassociation帧、Association Request、Association Response、Reassociation Request、Reassociation Response、Probe Request帧等等。
+### csma/ca 
+80211-2012,9.2,9.3
+80211-2012,362页,各种延时、切换、时间原语定义
+80211-2012,843页，IFS之间计算和关系
 
+a) RIFS reduced interframe space    最小帧间间隔，只有两个站
+b) SIFS short interframe space  多站允许的最小帧间间隔，空口接收最后一个符号，到处理并最早给出响应帧物理头的最短间隔
+c) PIFS PCF interframe space
+d) DIFS DCF interframe space
+e) AIFS arbitration interframe space (used by the QoS facility)
+f) EIFS extended interframe space
 
+sifs = aRXRFDelay（射频延迟）＋aRXPLCPDelay（物理层头部接收延迟）＋aMACProcessingDelay（MAC层处理延迟） + aRxTxTurnaroundTime（发送接收天线转换时间）
+slot = 可以理解成竞争过程Backoff的最小时间间隔，其包含aCCATime（CCA时间）＋aRxTxTurnaroundTime（发送接收天线转换时间）＋aAirPropagationTime（传播延迟）＋aMACProcessingDelay（MAC层处理延迟）。20us
+pifs = sifs + 1*slot
+difs = sifs + 2*slot,其本质上实际上都是最基本的SIFS和Slot的一个组合。
 
-### 机制大概
 csma/ca包括物理载波监听和虚拟载波监听，物理载波监听依靠cca实现，虚拟载波监听通过mac帧的nav字段实现
-
 物理载波监听为空闲时，nav以slottime为单位回退，信道任意时刻为忙，nav暂停回退
-
-
-
-
 ### rssi
 ad9361的实时agc_gain状态通过8个gpio_out的pins给到fpga，gpio_status_rf经rx_intf转换到rx_intf_bb基带时钟域信号
 用采样得到的iq值计算iq_rssi_half_db，手动测试的增益correction,还有9361实时输出的gpio_status，
@@ -420,16 +405,15 @@ gpio_status = 96;agc_control
 
 rssi_half_db == 采样IQ计算iq_rssi_half_db - agc增益 + 不同频率下测量得到的ad9361偏移量校准
 
-
 output rssi_half
-
-### cca
-比较接收信号强度和信号强度阈值，结合数据包的接收状态和发送状态，确定信道是否空闲
-能量检测门限：rssi_half_db_th = 87<<1; // -62dBm
+### cca（channel assesment clear）
+包括能量检测和载波监听，能量检测即根据rssi判断，载波监听用是否检测到前导训练符号判断。
+比较接收信号强度和信号强度阈值，结合数据包的接收状态和发送状态，确定信道是否空闲。前导序列成功检测：检测到短长训练序列。能量检测门限：rssi_half_db_th = 87<<1; // -62dBm
 在解码有问题的时候等待7.5us,
 assign ch_idle_rssi = (is_counting?1:( (rssi_half_db<=rssi_half_db_th) && (~demod_is_ongoing) ));
 ch_idle = (ch_idle_rssi&&(~tx_rf_is_ongoing)&&(~cts_toself_rf_is_ongoing)&&(~ack_cts_is_ongoing))
 在信号强度高于门限，解调不在运行、发射机射频不在运行、没有在发cts_toself、也没有在回应ACK时输出ch_idle表示信道空闲
+### tx_control
 
 ### tx_on_detection
 根据一些测量得到的最大延时如基带和射频之间传输的时延、射频关闭后，延长的时间、基带发射开始到发射通道开启、基带发射结束到发送通道关闭；还有openwifi模块内发射的一些状态；output一些指示发送状态的标志。
@@ -438,9 +422,6 @@ tx_core_is_ongoing，tx模块正在进行，change 1st
 tx_bb_is_ongoing，tx_intf正在进行，数据已经给到tx_iq_intf的fifo，2nd
 tx_rf_is_ongoing，rf已经进行时，手动设置延时确定标志位，4th
 tx_chain_on，bb状态和手动设置延时，确定给9361的状态切换spi写入标志，3rd
-
-
-
 ### cw_exp
 input来自tx_bit_intf的tx_queue_idx不同后更新cw窗口长度
 if队列索引不同、尝试发送完成、退出重传等条件重置cw窗口至最小，
@@ -449,20 +430,29 @@ if队列索引不同、尝试发送完成、退出重传等条件重置cw窗口至最小，
         else
         cw_exp保持不变
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### tsf_timer(time syc function)
+产生一个周期为1us，占空比为1%的小脉冲tsf_pulse_1M,
+从linux给出一个64位的标准时间，并以1us的速度计数,猜测为系统之间同步的信息。radio tap header?
+### phy_rx_parse
+物理帧解析，分辨ack帧和地址
+2Byte framecontrol + 2Byte Duration/ID + 6Byte rx_addr +6Byte tx_addr 固定
+若为控制帧的block ack request 
+    2Byte blk_ack_req_control +2Byte blk_ack_req_ssc
+若为控制帧的block ack 
+    空2Byte +2Byte blk_ack_req_ssn +8Byte blk_ack_resp_bitmap
+else 
+    2Byte sequence control 
+        若(to DS,from DS = 2b'11)
+        +6Byte src_addr
+    2Byte Qos
+end
+### pkt_filter_ctl
+过滤某些管理帧和控制帧，因为在fpga部分可以实现low mac的csma，部分帧不需要交给上层mac80211处理
+输出block_rx_dma_to_ps信号决定帧是否交给rx_intf再给dma给到上层
+monitor模式下可能会改变frame filter的规则，通过sdr驱动改变标志位改变mac80211状态，同时改变fpga过滤状态
+需要配合linux的mac80211协议栈和mac帧结构同时看
+### spi module 
+控制ad9361的收发模式切换，物理上9361在fdd模式，通过写24bit的指令控制本振分频器的开关，
+实现快速切换的tdd工作模式，
+ps选用SPI0_SCLK_O，SPI0_MOSI_O,SPI0_MISO_I(直连9361),SPI0_SS_O，其他连到xpu？？？
+软核把输出信号给到openwifi_module spi0_csn,spi0_sclk,spi0_mosi，经过spi处理选择后给到ad9361；

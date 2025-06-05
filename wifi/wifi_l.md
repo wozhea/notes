@@ -1,8 +1,6 @@
 意义：
-无人机群远距离网络，机间链路协作，物理层，全双工CSMA/CA设计，动态路由协议
-CSI感知，机上雷达，同感一体化
-
-
+无人机群远距离自组织多跳网络，机间链路协作，物理层，动态路由协议
+CSI感知
 
 ## wifi结构
 ![whole](./picture/structure.JPG);
@@ -31,6 +29,17 @@ DCF(distributed coordination function)csma/ca必须实现
 RA(received address)
 TA(transmite address)
 
+
+### 数据包层次
+IP包->MSDU->MPDU(MAC包)->PLCP->PSDU>phy
+在无线网络安全中，MSDU是Ethernet报文，经过添加完整性校验MIC、分帧、省电模式下报文缓存、加密、序列号赋值、CRC校验、MAC头之后成为MPDU，MPDU就是 指的经过802.11协议封装过的数据帧。A-MSDU技术是指把多个MSDU通过一定的方式聚合成一个较大的载荷。通常，当AP 或无线客户端从协议栈收到报文（MSDU）时，会打上Ethernet报文头，称之为AMSDUSubframe，而A-MSDU技术旨在将若干个A-MSDUSubframe按照802.11协议格 式，封装成一个MPDU报文单元
+(即数据链路层交给物理层的DATA)
+
+plcp(physical layer converge protocol);  
+ppdu(physical layer protocol data unit);  
+psdu(physical service data unit)  
+PLCP 可以看成 PPDU 的 Header 部分，包含了 MCS，data rate 等信息，而 PSDU 是我们实际从 MAC 层得到的要传输的数据，PPDU 则是 PLCP+PSDU
+
 ### MAC层帧结构
 
 数据链路层分为LLC（Logical Link Control，逻辑链路控制）子层及MAC（Media Access Control，媒体访问控制）子层。上层数据被移交给LLC子层后成为MAC服务数据单元，即MSDU（MAC Service Data Unit），而当LLC将MSDU发送到MAC子层后，需要给MSDU增加MAC包头信息，被封装后的MSDU成为MAC协议数据单元，即MPDU（MAC Protocol Data Unit），其实它就是802.11MAC帧。802.11MAC帧包括第二层报头、帧主体及帧尾  
@@ -44,9 +53,6 @@ TA(transmite address)
 CF-END表示PCF功能结束，CF-ACK表示PCF下的ACK回复，CF-POLL表示PCF下的数据轮询
 
 数据帧(Data)除正常数据帧外，也有类似的，在PCF下的Data + CF-Ack、Data+CF-end、 Data + CF-Ack + CF-Pol；带有Qos的数据帧(QoS Data)、在PCF下的(QoS Data + CF-Ack)等。
-
-
-
 
 
 Duration/ID用于更新NAV向量，AID用于表示AP与STA之间的连接ID;  
@@ -82,8 +88,11 @@ Qos、HT Control的详细解析
 #################################
 
 
-## wifi 具体工程结构
+### 物理层
+与数据链路层相似，物理层也分为两个子层。上层为PLCP（Physical Layer Convergence Procedure，物理层汇聚协议）子层，下层为PMD（Physical Medium Dependent，物理媒介相关）子层。PLCP子层将数据链路层传来的数据帧变成了PLCP协议数据单元（PLCP Protocol Data Unit，PPDU），随后PMD子层将进行数据调制处理并按比特方式进行传输。
+PLCP接收到PSDU（MAC层的MPDU）后，准备要传输的PSDU（PLCP Service Data Unit ,PLCP服务数据单元），并创建PPDU，将前导部分和PHY报头添加到PSDU上。前导部分用于同步802.11无线发射和接收射频接口卡。创建PPDU后，PMD子层将PPDU调制成数据位后开始传输。
 
+## wifi 具体工程结构
 ### sdr驱动
 根据of_match_table匹配设备树匹配表，把驱动挂载在设备树对应的节点下。
 
@@ -115,55 +124,84 @@ openwifi主模块输入
 ps_clk 100Mhz
 adc_clk 40Mhz
 m_axi_mm2s_aclk 100Mhz
-
-
-
-
-
-## tx_intf
-上层数据从dma0过来，s00_axis作为输入总线
-
-### 输入输出接口
-dac_rst:来自软核复位信号
-dac_clk：40Mhz，来自axi_ad9361的L_clk经分频后形成adc_clk
-
-### tx_intf_s_axis_i module
-从s00_axis总线把数据从dma给过来；
-例化4个xpm_fifo_sync用于存储数据队列，根据队列索引用于重传？
-从连接到pl的dma读数据，dma另一头连接ps通过dma驱动和ps通信，dma和该模块实现pl和ps之间的通信
-数据最后从DATA_TO_ACC输出
-
-
-### tx_bit_intf_i module      xxxxxxxx复杂，待看
-最关键的模块，控制交给物理发射机的MAC数据
-数据经过（）判断选择后给到一个双端口xpm_memory_tdpram，1024×64大小,最后输出64位douta和64位数据data_to_acc，data_to_acc是最后传输的数据；最后交给openofdm_tx发射机。
-
-
-
-
-### 两个 edge_to_flip module 
-没用，只是led显示标志位，没有连接
-
-
-
-### dac_intf module 
-最后数据转换给ad9361
-
-### tx_iq_intf module
-输入发射机数据，经过选择和打包，是否选择随机数据，输出给dac的数据
-
-
-
-### tx_status_fifo_i module
-一些发射状态参数延时
-
-
-### tx_interrupt_selection module
-发射状态终端配置
-
-
 ## openofdm_tx  
-主要就是dot11_tx模块根据状态机状态进行组帧
+### 物理参数
+![物理参数.JPG](./picture/物理参数.JPG);
+a/g采用20Mhz带宽，n支持某些40M的信道
+![rate_parameters.JPG](./picture/rate_parameters.JPG);
+#### 802.11n结构
+mixed mode为强制支持,n相比于a增加了ht域的字符
+![80211nframe_structure.JPG](./picture/80211nframe_structure.JPG);
+80211a的PPDU格式
+![PPDU_structure.JPG](./picture/PPDU_structure.JPG);
+#### L-STF:
+2个sym，160samples,
+一个L-STF16个样点，总共16*10=160samples，频域生成,调整到对应子载波位置上作64点IFFT，截取前16个周期时域点，量化；
+![L_STF_IFFT.JPG](./picture/L_STF_IFFT.JPG);
+
+#### L-LTF:
+2个sym,16+16+64+64=160samples，
+频域生成，与STF相同作64点IFFT，得到64时域点，量化；
+![L_LTF_IFFT.JPG](./picture/L_LTF_IFFT.JPG);
+
+
+#### L_signal
+1个sym，(24*2+4+12)+16=80samples
+bit0-3表示RATE传输速率，HT模式默认6Mbps，
+bit4保留为0,
+bit5-16,LENGTH表示无符号MAC请求传输的PSDU的字节数，bit17为前17个的偶校验位，LSB先发送
+6个bit的tail保留为0,
+不进行加扰，
+按卷积效率1/2，bpsk调制，不进行打孔，以6Mbps的速率发送
+![legacy_signal.JPG](./picture/legacy_signal.JPG);
+
+
+#### ht-signal
+2个sym，160samples
+48个数据点(96个编码点)如果检测到rate为6M，检查L-SIG和HT-SIG的BPSK星座点，L-SIG为0,1同相，HT-SIG为正交，检测正交分量样本多于同相，
+
+![ht_signal.JPG](./picture/ht_signal.JPG);
+MCS: only supports 0 - 7.
+CBW 20/40: channel bandwidth. OpenOFDM only supports 20 MHz channel (0).
+Reserved: must be 0.
+STBC: number of space time block code. OpenOFDM only supports 00 (no STBC).
+FEC coding: OpenOFDM only supports BCC (0).
+Short GI: whether short guard interval is used.
+Number of extension spatial streams: only 0 is supported.
+CRC: checksum of previous 34 bits.
+Tail bits: must all be 0
+MCS（7bit）：0-76中的某一种来表示发送数据字段的调制编码方案
+20/40MHz（1bit）：用来指示发送的是20MHz还是40MHz带宽。
+长度（16bit）：指示数据的长度
+平滑（1bit）：在进行Tx波束成型和空间扩展后，得到发射机和接收机之间的信道可以超过800ns。高延迟传输可解除相邻子载波的相关性。某些Tx波束成型也会导致相邻子载波间相位的不连续。在使用子载波平滑技术时，这两种情况会削弱信道估计。在这两种情况下，发射机应该将平滑比特设置为0，以通知接收机只是用每载波信道估计。
+非探测（1bit）：设为0时发送的是探测分组。探测分组用于收集Tx波束成型和链路适应的信道状态信息。为了将探测扩展到数据字段之外的额外空间域上，扩展空间流数字段所设的值大于0。
+保留位（1bit）
+聚合（1bit）：表示有效载荷包含单个MPDU（为0）或一个MPDU聚合（为1）。
+STBC（2bit）：表示STBC操作的维度
+FEC编码（1bit）：为0时表示数据为BCC编码，为1时表示数据为LDPC编码。
+短GI（1bit）：为1时表示使用400ns短保护间隔，为0时表示使用800ns标准长保护间隔。
+扩展空间流数（1bit）：见非探测描述。
+CRC（8bit）：生成多项式为G(D)=D^8+D^2+D^1+1
+ht_crc生成![ht_crc.JPG](./picture/ht_crc.JPG);
+#### ht-stf
+1个sym,5*16=80samples
+用于改进mimo系统中的自动增益控制，
+20Mhz序列和l-stf一样，40Mhz通过将20MHz的序列幅值并旋转上半部分的子载波
+暂时没有实现40Mhz的，不用mimo
+![ht_stf.JPG](./picture/ht_stf.JPG);
+
+#### ht-ltf
+工程中只发了一个sym，80samples
+前面共计720个samples，一个sym的legacy_siganl,2个sym的ht_signal，其他为固定数据
+#### DATA域
+#### service
+16bit，bit0-6 set to 0，用于同步解扰器;bit7-15 reserved to 0
+#### tail
+6bit,确保卷积编码器返回置零状态
+
+#### pad
+补充位，用于填充到整OFDM符号
+![符号个数.JPG](./picture/符号个数.JPG);
 ### 输入输出接口
 (
   input  wire        clk,//100M 
@@ -189,24 +227,80 @@ state1：signal和ht_signal域组帧
 state11：data域组帧
 state2：加扰后的卷积、打孔、交织、导频插入和IFFT
 state3：最后整个数据的输出
-
 ### 以state3描述
 收到开始信号后从S3_WAIT_PKT状态进入S3_L_STF
 输出用简单的查找表模块l_stf_rom，已转化为最后的16位i和q前导数据，发送160samples后进入S3_L_LTF
 输出用简单的查找表模块l_ltf_rom，已转化为最后的16位i和q前导数据，发送160samples两个sym后进入S3_L_SIG
-
 
 S3_L_SIG组帧：
 以plcp_bit计数，取bram_din前[0:23]为signal域，设定对应发射参数，根据bram_din[24]判断PKT类型为LEGACY或HT(DATA service域头为0，HT signal头为1)，LEGACY则进入S1_DATA状态，HT则进入S1_HT_SIG，
 
 
 
+### sdr驱动
+根据of_match_table匹配设备树匹配表，把驱动挂载在设备树对应的节点下。
+### ps引出的接口
+S_AXI_ACP接interconnect2 控制dma1，用于side_ch，数据采集
+
+S_AXI_HP3接interconnect0 控制dma0，用于tx_intf,发射数据存储
+
+M_AXI_GP0控axi_ad9361,axi_gpreg
+
+M_AXI_GP1控主模块的七个IP核
+### 时钟和数据速率
+ps输出  FCLK_CLK0 100Mhz -ps_clk -xpu
+        FCLK_CLK1 200Mhz -axi_ad9361_delayclk(7 series)
+        FCLK_CLK2 125Mhz
 
 
 
+axi_ad9361输入160MHZdata_clk,输出l_clk 160Mhz分频到40Mhz作为adc,dacIP核的时钟，输入主模块adc_clk
+40Mhz倍频到100Mhz输入主模块m_axi_mm2s_aclk
 
+
+
+openwifi主模块输入
+ps_clk 100Mhz
+adc_clk 40Mhz
+m_axi_mm2s_aclk 100Mhz
+## tx_intf
+上层数据从dma0过来，s00_axis作为输入总线
+### 输入输出接口
+dac_rst:来自软核复位信号
+dac_clk：40Mhz，来自axi_ad9361的L_clk经分频后形成adc_clk
+### tx_intf_s_axis_i module
+从s00_axis总线把数据从dma给过来；
+例化4个xpm_fifo_sync用于存储数据队列，根据队列索引用于重传？
+从连接到pl的dma读数据，dma另一头连接ps通过dma驱动和ps通信，dma和该模块实现pl和ps之间的通信
+数据最后从DATA_TO_ACC输出
+### tx_bit_intf_i module      xxxxxxxx复杂，待看
+最关键的模块，控制交给物理发射机的MAC数据
+数据经过（）判断选择后给到一个双端口xpm_memory_tdpram，1024×64大小,最后输出64位douta和64位数据data_to_acc，data_to_acc是最后传输的数据；最后交给openofdm_tx发射机。
+### 两个 edge_to_flip module 
+没用，只是led显示标志位，没有连接
+### dac_intf module 
+最后数据转换给ad9361
+### tx_iq_intf module
+输入发射机数据，经过选择和打包，是否选择随机数据，输出给dac的数据
+### tx_status_fifo_i module
+一些发射状态参数延时
+### tx_interrupt_selection module
+发射状态终端配置
 
 ## rx_intf
+### 流程
+adc_intf 
+adc_data经过天线选择，是否屏蔽一路
+->adc_data_internal
+经一个延时模块（但注释为40M变为20M）->adc_data_delay
+经异步xpm fifo(写40Madc时钟，写使能20MHz,读100Mm_axis_clk)为100Mhz的data_to_acc_internal
+经bb_gain，移位，把原本12位的9361数据符号扩展变为16位->ant_data_after_sel(data_to_bb)
+判断是否选择本地回环，选择tx_intf数据和ant_data_after_sel,->bw20_i0,q0,i1,q1
+
+rx_iq_intf
+已经进行旁路速率匹配->rf_i0_to_acc,
+sample0 = {rf_i0_to_acc,rf_q0_to_acc}
+sample1 = {rf_i1_to_acc,rf_q1_to_acc}
 
 ### adc_intf module
 输入adc_data经过天线选择，是否屏蔽一路->adc_data_internal
@@ -222,20 +316,15 @@ S3_L_SIG组帧：
 sample0 = {rf_i0_to_acc,rf_q0_to_acc}；作为接收数据
 sample1 = {rf_i1_to_acc,rf_q1_to_acc}；仅作为采集数据
 
-
-
 ### byte_to_word_fcs_sn_insert module
 input ofdm_rx接收机解析后的8位byte_out数据，转化为axis总线传输的64位数据
 
 
 
 ## ofdm_rx
-### 信号
-输入来自rx_intf的32位sample0作为IQ数据，经解析后输出8位byte_out和rx_intf的pl_to_m_axis模块和xpu的rx_parse模块
 
-
-
-### dot11接收机状态机
+### verilog模块
+#### dot11接收机状态机
 S_WAIT_POWER_TRIGGER,等待rssi计算出的信号强度超过门限，进入S_SYNC_SHORT状态
 其他状态下强度指示低于门限则都返回S_WAIT_POWER_TRIGGER状态，
 S_SYNC_SHORT,捕获到到短训练序列，进入S_SYNC_LONG状态
@@ -249,7 +338,16 @@ S_CHECK_HT_SIG_CRC若HT_SIGNAL_CRC校验正确，进入S_CHECK_HT_SIG，正确则
 S_DECODE_DATA下进行数据位解包，解包完后若长度需要补充则送入S_MPDU_PAD，不需要则解包完成进入S_DECODE_DONE送入下一个帧的接收，进入S_WAIT_POWER_TRIGGER状态
 有点麻烦，直接画流程图吧
 经过校准后的rssi大于门限后进入sync_short状态,  
+#### 信号
+输入来自rx_intf的32位sample0作为IQ数据，经解析后输出8位byte_out和rx_intf的pl_to_m_axis模块和xpu的rx_parse模块
+#### watchdog design
+input:enable接收机进入解码状态前使能，iq_data,dc_running_sum_th直流偏置门限，power_trigger能量检测触发，min/max_signal_len_th最长最短信号长度门限，signal_len接收机解调信号长度
+output:receiver_rst用于复位wifi接收机，异常状态复位
 
+receiver_rst_internal，对输入数据符号位进行32点平均，计算直流分量，若为0则交替选择-1和1避免异常，若直流分量大于阈值，复位，
+power_trigger，接收机检测能量大于能量门限，复位
+equalizer_monitor_rst，均衡器归一化星座图绝对值过小，无法解调，复位
+signal_len_rst，解调出来的signal大于或小于协议规定长度。复位。
 
 #### sync_short
 捕获WIFI物理帧头，粗频偏估计
@@ -280,18 +378,11 @@ sync_short阶段，从short输入2pi*f*16*T频偏查找角度后再次送入short四舍五入除以16得
 首先S_SKIPPING掉L_STF的尾部(部分LTF的CP)，送入32点互相关器移位寄存存储，高位为最新数据，用8个复数乘法器乘4次算出32点和本地L_LTF的互相关值，找出峰值点地址存入addr1
 S_WAIT_FOR_FIRST_PEAK:
 数了88个后直接指示检测到L_LTF???
-
-
-
-
-
-
-
-
-
-
-
-
+#### equalizer module
+input经过长导频同步的sync_long_out，相位估计eq_phase_out,
+output均衡后的equalizer_out
+判断是否经过
+导频信道估计
 
 
 ## xpu

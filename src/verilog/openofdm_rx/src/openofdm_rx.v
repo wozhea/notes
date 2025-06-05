@@ -21,8 +21,8 @@
 	(
 		// intf to dot11
 		//input  wire openofdm_core_rst,
-		input  wire signed [(RSSI_HALF_DB_WIDTH-1):0] rssi_half_db,
-		input  wire [(2*IQ_DATA_WIDTH-1):0] sample_in,
+		input  wire signed [(RSSI_HALF_DB_WIDTH-1):0] rssi_half_db,//from xpu计算信号强度
+		input  wire [(2*IQ_DATA_WIDTH-1):0] sample_in,//from rx_intf第一路采样信号
     input  wire sample_in_strobe,
 
 		output wire demod_is_ongoing, // this needs to be corrected further to indicate actual RF on going regardless the latency
@@ -183,7 +183,7 @@ input wire s00_axi_rready
 		.clk(s00_axi_aclk),
 		.rstn(s00_axi_aresetn),
 		// .enable(~demod_is_ongoing),
-    .enable(signal_watchdog_enable),
+    	.enable(signal_watchdog_enable),
 
 		.i_data(sample_in[31:16]),
 		.q_data(sample_in[15:0]),
@@ -191,42 +191,43 @@ input wire s00_axi_rready
 
 		.power_trigger(power_trigger|(~slv_reg1[12])),//by default the watchdog will run regardless the power_trigger
 
-		.signal_len(pkt_len),
-    .sig_valid(sig_valid),
+		.signal_len(pkt_len),//in,from 接收机
+    	.sig_valid(sig_valid),
 
-		.min_signal_len_th(slv_reg4[15:12]),
-    .max_signal_len_th(slv_reg4[31:16]),
+		.min_signal_len_th(slv_reg4[15:12]),//来自驱动
+    	.max_signal_len_th(slv_reg4[31:16]),
 		.dc_running_sum_th(slv_reg2[23:16]),
 
     // equalizer monitor: the normalized constellation shoud not be too small (like only has 1 or 2 bits effective)
-    .equalizer_monitor_enable((~slv_reg1[16])),
-    .small_eq_out_counter_th(slv_reg5[9:4]),
-    .state(state),
+    	.equalizer_monitor_enable((~slv_reg1[16])),
+    	.small_eq_out_counter_th(slv_reg5[9:4]),
+    	.state(state),
 		.equalizer(equalizer),
 		.equalizer_valid(equalizer_valid),
 
-		.receiver_rst(receiver_rst)
+			.receiver_rst(receiver_rst) //output 用于复位接收机
 	);
 
 	dot11 # ( 
 	) dot11_i (
+		//INPUT
 		.clock(s00_axi_aclk),
 		.enable( 1 ),
 		//.reset ( (~s00_axi_aresetn)|slv_reg0[0]|openofdm_core_rst ),
 		.reset ( (~s00_axi_aresetn)|slv_reg0[0]|receiver_rst ),
 		.reset_without_watchdog((~s00_axi_aresetn)|slv_reg0[0]),
-
-		.power_thres(rx_sensitivity_th),
-		.min_plateau(slv_reg3),
-		.threshold_scale(~slv_reg1[8]),
-
-		.rssi_half_db(rssi_half_db),
-
+		.power_thres(rx_sensitivity_th),//能量检测门限
+		.min_plateau(slv_reg3),//信号自相关门限个数
+		.threshold_scale(~slv_reg1[8]),//信号检测门限
+		.rssi_half_db(rssi_half_db),//实时能量
 		.sample_in(sample_in),
 		.sample_in_strobe(sample_in_strobe),
 		.soft_decoding(slv_reg4[0]),
 		.force_ht_smoothing(slv_reg1[0]),
 		.disable_all_smoothing(slv_reg1[4]),
+
+
+
 
 		// OUTPUT: bytes and FCS status
 		.demod_is_ongoing(demod_is_ongoing),

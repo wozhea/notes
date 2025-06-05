@@ -354,22 +354,22 @@ sync_short sync_short_inst (
     .reset(reset | sync_short_reset),
     .enable(enable & sync_short_enable),
 
-    .min_plateau(min_plateau),
-    .threshold_scale(threshold_scale),
+    .min_plateau(min_plateau),//in
+    .threshold_scale(threshold_scale),//in
     
     .sample_in(sample_in),
     .sample_in_strobe(sample_in_strobe),
 
-    .phase_in_i(sync_short_phase_in_i),
-    .phase_in_q(sync_short_phase_in_q),
+    .phase_in_i(sync_short_phase_in_i),//out
+    .phase_in_q(sync_short_phase_in_q),//out
     .phase_in_stb(sync_short_phase_in_stb),
 
-    .phase_out(sync_short_phase_out),
+    .phase_out(sync_short_phase_out),//in
     .phase_out_stb(sync_short_phase_out_stb),
 
-    .demod_is_ongoing(demod_is_ongoing),
-    .short_preamble_detected(short_preamble_detected),
-    .phase_offset(phase_offset)
+    .demod_is_ongoing(demod_is_ongoing),//in
+    .short_preamble_detected(short_preamble_detected),//out
+    .phase_offset(phase_offset)//out
 );
 
 sync_long sync_long_inst (

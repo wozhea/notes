@@ -1,0 +1,1 @@
+cmd_/home/flow/openwifi/driver/side_ch/side_ch.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id=sha1  -T scripts/module.lds -o /home/flow/openwifi/driver/side_ch/side_ch.ko /home/flow/openwifi/driver/side_ch/side_ch.o /home/flow/openwifi/driver/side_ch/side_ch.mod.o;  true

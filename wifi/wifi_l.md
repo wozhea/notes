@@ -3,20 +3,18 @@
 CSI感知
 
 ## wifi结构
-![whole](./picture/structure.JPG);
-从用户空间最后到sdr的驱动到FPGA分两条路，一路是应用数据进行系统调用，到套接字到网络协议，给设备接口，最后变成数据帧交给mac80211；
-另一路是专门对wifi进行管理的工具，如wpa_supplicant,hostapd,iwconfig等，经linux内核空间nl80211、cfg80211协议栈，用户空间的请求通过netlink套接字传递给内核，nl80211是一个netlink协议，专为无线网络管理设计，将用户空间的请求转换为内核能够理解的格式。最后交给mac80211；
+![whole](./picture/structure.JPG)  
+从用户空间最后到sdr的驱动到FPGA分两条路，一路是应用数据通过系统调用，到套接字到网络协议，给设备接口，最后变成数据帧交给mac80211；另一路是专门对wifi进行管理的工具，如wpa_supplicant,hostapd,iwconfig等，经linux内核空间nl80211、cfg80211协议栈，用户空间的请求通过netlink套接字传递给内核，nl80211是一个netlink协议，专为无线网络管理设计，将用户空间的请求转换为内核能够理解的格式。最后交给mac80211；  
 nl80211将请求传递给cfg80211,这是一个通用的无线网络配置框架，负责管理无线设备状态，处理WIFI设备的配置比如信道、频率等。
-mac80211是实现80211MAC层的模块，处理所有与WIFI相关的协议逻辑，如帧的生成、发送和接收。
-mac80211通过ieee80211_ops定义的函数接口api调用sdr.ko驱动，把各类数据和sdr交互，用sdr.ko控制整块fpga的工作。
-
-openwifi属于softmac架构，管理、控制帧通过mac80211协议栈控制，lowmac的csma/ca、cca在fpga内部
+mac80211是实现80211MAC层的模块，处理所有与WIFI相关的协议逻辑，如帧的生成、发送和接收。  
+mac80211通过ieee80211_ops定义的函数接口api调用sdr.ko驱动，把各类数据和sdr交互，用sdr.ko控制整块fpga的工作。  
+openwifi属于softmac架构，管理、控制帧通过mac80211协议栈控制，lowmac的csma/ca、cca在fpga内部  
 
 ![verilog.JPG](./picture/structure_2.JPG);
-数据从mac80211过来之后交给sdr驱动，sdr驱动调用rx_intf、openofdm_rx_driver、xilinx_dma_driver、xpu_driver、openofdm_tx_driver、tx_intf_driver等驱动对fpga控制；
-sdr_driver数据先交给axis_dma，dma核和tx_intf RTL模块用axis总线相连，tx_intf进行队列管理等功能，收到来自XPU的可以发送、时间戳等标志和数据后把数据、发射参数交给PMD物理层发射机openofdm_tx，openofdm_tx进行物理层编码调制组帧后把数据交给tx_iq_intf和dac_intf最后交给ad9361发射。
-ad9361实时接收电磁波后，经adc_intf和rx_iq_intf后得到IQ数据交给openofdm_rx接收机得到整个帧的结构和数据，把一系列参数交给pl_to_m_axis RTL模块用于处理mac80211需要的数据如rssi报告、时间戳报告、工作参数等信息；帧数据交给XPU模块，进行MAC帧解析，交给tx_control发射控制模块，交给csma_ca虚拟载波侦听和冲突避免模块，经过过滤把mac头信息交给pl_to_m_axis；
-从ad9361获得实时agc增益对从IQ数据算得的rssi进行补偿，把实际的信号强度交给pl_to_m_axis和cca信道清除评估模块，物理上信道空闲后把标志位给csma模块。
+数据从mac80211过来之后交给sdr驱动，sdr驱动调用rx_intf、openofdm_rx_driver、xilinx_dma_driver、xpu_driver、openofdm_tx_driver、tx_intf_driver等驱动对fpga控制；  
+sdr_driver数据先交给axis_dma，dma核和tx_intf RTL模块用axis总线相连，tx_intf进行队列管理等功能，收到来自XPU的可以发送、时间戳等标志和数据后把数据、发射参数交给PMD物理层发射机openofdm_tx，openofdm_tx进行物理层编码调制组帧后把数据交给tx_iq_intf和dac_intf最后交给ad9361发射。  
+ad9361实时接收电磁波后，经adc_intf和rx_iq_intf后得到IQ数据交给openofdm_rx接收机得到整个帧的结构和数据，把一系列参数交给pl_to_m_axis RTL模块用于处理mac80211需要的数据如rssi报告、时间戳报告、工作参数等信息；帧数据交给XPU模块，进行MAC帧解析，交给tx_control发射控制模块，交给csma_ca虚拟载波侦听和冲突避免模块，经过过滤把mac头信息交给pl_to_m_axis；  
+从ad9361获得实时agc增益对从IQ数据算得的rssi进行补偿，把实际的信号强度交给pl_to_m_axis和cca信道清除评估模块，物理上信道空闲后把标志位给csma模块。  
 
 ### glossary:
 RTS/CTS：request to send;clear to send，clear to send
@@ -28,21 +26,61 @@ PCF（point coordination function）
 DCF(distributed coordination function)csma/ca必须实现
 RA(received address)
 TA(transmite address)
-
-
-### 数据包层次
-IP包->MSDU->MPDU(MAC包)->PLCP->PSDU>phy
-在无线网络安全中，MSDU是Ethernet报文，经过添加完整性校验MIC、分帧、省电模式下报文缓存、加密、序列号赋值、CRC校验、MAC头之后成为MPDU，MPDU就是 指的经过802.11协议封装过的数据帧。A-MSDU技术是指把多个MSDU通过一定的方式聚合成一个较大的载荷。通常，当AP 或无线客户端从协议栈收到报文（MSDU）时，会打上Ethernet报文头，称之为AMSDUSubframe，而A-MSDU技术旨在将若干个A-MSDUSubframe按照802.11协议格 式，封装成一个MPDU报文单元
-(即数据链路层交给物理层的DATA)
-
 plcp(physical layer converge protocol);  
 ppdu(physical layer protocol data unit);  
 psdu(physical service data unit)  
-PLCP 可以看成 PPDU 的 Header 部分，包含了 MCS，data rate 等信息，而 PSDU 是我们实际从 MAC 层得到的要传输的数据，PPDU 则是 PLCP+PSDU
+
+### 数据包层次
+![layer_pdu](./picture/layer_pdu.JPG)
+IP包->MSDU->MPDU(MAC包)->PLCP->PSDU>phy
+在无线网络安全中，MSDU是Ethernet报文，经过添加完整性校验MIC、分帧、省电模式下报文缓存、加密、序列号赋值、CRC校验、MAC头之后成为MPDU，MPDU就是指的经过802.11协议封装过的数据帧。A-MSDU技术是指把多个MSDU通过一定的方式聚合成一个较大的载荷。通常，当AP或无线客户端从协议栈收到报文（MSDU）时，会打上Ethernet报文头，称之为AMSDUSubframe，而A-MSDU技术旨在将若干个A-MSDUSubframe按照802.11协议格 式，封装成一个MPDU报文单元(即数据链路层交给物理层的DATA)  
+PLCP 可以看成 PPDU 的 Header 部分，包含MCS，data rate 等信息，而PSDU是我们实际从 MAC 层得到的要传输的数据，PPDU则是 PLCP+PSDU
 
 ### MAC层帧结构
-
 数据链路层分为LLC（Logical Link Control，逻辑链路控制）子层及MAC（Media Access Control，媒体访问控制）子层。上层数据被移交给LLC子层后成为MAC服务数据单元，即MSDU（MAC Service Data Unit），而当LLC将MSDU发送到MAC子层后，需要给MSDU增加MAC包头信息，被封装后的MSDU成为MAC协议数据单元，即MPDU（MAC Protocol Data Unit），其实它就是802.11MAC帧。802.11MAC帧包括第二层报头、帧主体及帧尾  
+
+![mac_state](./picture/mac_state.JPG)  
+不同状态下能够发送的MAC帧类型不同，例如state1下只能发送Class 1型帧。  
+![mac_class1](./picture/MAC_class1.JPG)  
+![mac_class2](./picture/MAC_class2.JPG)  
+![mac_class3](./picture/MAC_class3.JPG)  
+![mac_frame_format](./picture//mac_frame_format.JPG);  
+![control_field](./picture//control_field.JPG)  
+Address 2, Address 3, Sequence Control, Address 4,和Frame Body字段只在某些帧中出现
+
+Type(management,control,data)和Subtype字段共同决定MAC帧类型，To DS为1则表示帧发往DS(distributing system，即AP),From DS表示来自DS
+![duration_field](./picture/duration_field.JPG)duration表示 微秒
+
+Address：
+可能包含BSSID：一个按规则生成的46位随机数
+DA(Destination Address),SA(Source Address),RA(Receiver Address),TA(Transmitter Address),
+
+Sequence Control:
+包含Sequence Number和Fragment Number，Sequence Number用12位标识MSDU序号，Fragment Number用4位标识MSDU单元中片段标号
+
+FCS：
+32位CRC
+
+
+#### control frames
+RTS帧  
+![RTS_frame](./picture/RTS_frame.JPG)  
+CTS帧  
+![CTS_frame](./picture/CTS_frame.JPG)  
+ACK帧  
+![ACK_fram](./picture/ACK_frame.JPG)  
+还有PS-Poll(Power-Save Poll)、CF-End(contension Free-End)、CF-ACK等等
+CTS/RTS不是每帧都需要建立连接，对于过短数据长度的帧可能没有rts/cts建立，该机制可以在dot11RTSThreshold attribute设为always、never、or 超过length threshold
+CTS/RTS帧，在duration字段包含传输和ACK所的占用信道时间(us)，可以被所有sta接收，用来更新每个sta的nav长度，
+
+#### data frames
+![DATA_frames](./picture/DATA_frames.JPG)
+#### management frames
+![management_frames](./picture/management_frames.JPG)
+有Beacon帧、IBSS ATIM帧(Announcement Traffic Indication Message)帧、Disassociation帧、Association Request、Association Response、Reassociation Request、Reassociation Response、Probe Request帧等等。
+
+
+
 
 ![mac_frame](./picture/mac_frame.JPG)
 一般的MAC帧结构如图，FrameControl主要规定帧类型、分为管理帧、数据帧、控制帧，，控制帧用于控制对物理信道的占用，发送方向、帧聚合是否有更多分片、是否是重传帧、电源省电模式、缓存中是否有更多数据、是否用WEP加密、是否为数据帧。  
@@ -66,7 +104,7 @@ FCS：校验
 
 
 
-![control_field](./picture//control_field.JPG)
+![control_field](./picture//control_field.JPG)  
 具体查看80211-2012-p480  
 ProtocolVersion表示协议版本  
 Tpye和Subtype规定帧类型，
@@ -89,41 +127,28 @@ Qos、HT Control的详细解析
 
 
 ### 物理层
-与数据链路层相似，物理层也分为两个子层。上层为PLCP（Physical Layer Convergence Procedure，物理层汇聚协议）子层，下层为PMD（Physical Medium Dependent，物理媒介相关）子层。PLCP子层将数据链路层传来的数据帧变成了PLCP协议数据单元（PLCP Protocol Data Unit，PPDU），随后PMD子层将进行数据调制处理并按比特方式进行传输。
-PLCP接收到PSDU（MAC层的MPDU）后，准备要传输的PSDU（PLCP Service Data Unit ,PLCP服务数据单元），并创建PPDU，将前导部分和PHY报头添加到PSDU上。前导部分用于同步802.11无线发射和接收射频接口卡。创建PPDU后，PMD子层将PPDU调制成数据位后开始传输。
+与数据链路层相似，物理层也分为两个子层。上层为PLCP（Physical Layer Convergence Procedure，物理层汇聚协议）子层，下层为PMD（Physical Medium Dependent，物理媒介相关）子层。
+PLCP子层将数据链路层传来的数据帧变成了PLCP协议数据单元（PLCP Protocol Data Unit，PPDU），随后PMD子层将进行数据调制处理并按比特方式进行传输。PLCP接收到PSDU（MAC层的MPDU）后，准备要传输的PSDU（PLCP Service Data Unit ,PLCP服务数据单元），并创建PPDU，将前导部分和PHY报头添加到PSDU上。前导部分用于同步802.11无线发射和接收射频接口卡。创建PPDU后，PMD子层将PPDU调制成数据位后开始传输。
 
 ## wifi 具体工程结构
 ### sdr驱动
 根据of_match_table匹配设备树匹配表，把驱动挂载在设备树对应的节点下。
-
-### ps引出的接口
-S_AXI_ACP接interconnect2 控制dma1，用于side_ch，数据采集
-
-S_AXI_HP3接interconnect0 控制dma0，用于tx_intf,发射数据存储
-
-M_AXI_GP0控axi_ad9361,axi_gpreg
-
-M_AXI_GP1控主模块的七个IP核
-
-
-
-
+### verilog
+#### ps引出的接口
+S_AXI_ACP接interconnect2 控制dma1，用于side_ch，数据采集  
+S_AXI_HP3接interconnect0 控制dma0，用于tx_intf,发射数据存储  
+M_AXI_GP0控axi_ad9361,axi_gpreg  
+M_AXI_GP1控主模块的七个IP核  
 ### 时钟和数据速率
-ps输出  FCLK_CLK0 100Mhz -ps_clk -xpu
-        FCLK_CLK1 200Mhz -axi_ad9361_delayclk(7 series)
-        FCLK_CLK2 125Mhz
-
-
-
+ps输出  FCLK_CLK0 100Mhz -ps_clk -xpu  
+        FCLK_CLK1 200Mhz -axi_ad9361_delayclk(7 series)  
+        FCLK_CLK2 125Mhz  
 axi_ad9361输入160MHZdata_clk,输出l_clk 160Mhz分频到40Mhz作为adc,dacIP核的时钟，输入主模块adc_clk
 40Mhz倍频到100Mhz输入主模块m_axi_mm2s_aclk
-
-
-
 openwifi主模块输入
-ps_clk 100Mhz
-adc_clk 40Mhz
-m_axi_mm2s_aclk 100Mhz
+ps_clk 100Mhz  
+adc_clk 40Mhz  
+m_axi_mm2s_aclk 100Mhz  
 ## openofdm_tx  
 ### 物理参数
 ![物理参数.JPG](./picture/物理参数.JPG);
@@ -264,27 +289,28 @@ ps_clk 100Mhz
 adc_clk 40Mhz
 m_axi_mm2s_aclk 100Mhz
 ## tx_intf
+### verilog
 上层数据从dma0过来，s00_axis作为输入总线
-### 输入输出接口
+#### 输入输出接口
 dac_rst:来自软核复位信号
 dac_clk：40Mhz，来自axi_ad9361的L_clk经分频后形成adc_clk
-### tx_intf_s_axis_i module
+#### tx_intf_s_axis_i module
 从s00_axis总线把数据从dma给过来；
 例化4个xpm_fifo_sync用于存储数据队列，根据队列索引用于重传？
 从连接到pl的dma读数据，dma另一头连接ps通过dma驱动和ps通信，dma和该模块实现pl和ps之间的通信
 数据最后从DATA_TO_ACC输出
-### tx_bit_intf_i module      xxxxxxxx复杂，待看
+#### tx_bit_intf_i module      xxxxxxxx复杂，待看
 最关键的模块，控制交给物理发射机的MAC数据
 数据经过（）判断选择后给到一个双端口xpm_memory_tdpram，1024×64大小,最后输出64位douta和64位数据data_to_acc，data_to_acc是最后传输的数据；最后交给openofdm_tx发射机。
-### 两个 edge_to_flip module 
+#### 两个 edge_to_flip module 
 没用，只是led显示标志位，没有连接
-### dac_intf module 
+#### dac_intf module 
 最后数据转换给ad9361
-### tx_iq_intf module
+#### tx_iq_intf module
 输入发射机数据，经过选择和打包，是否选择随机数据，输出给dac的数据
-### tx_status_fifo_i module
+#### tx_status_fifo_i module
 一些发射状态参数延时
-### tx_interrupt_selection module
+#### tx_interrupt_selection module
 发射状态终端配置
 
 ## rx_intf
@@ -301,8 +327,8 @@ rx_iq_intf
 已经进行旁路速率匹配->rf_i0_to_acc,
 sample0 = {rf_i0_to_acc,rf_q0_to_acc}
 sample1 = {rf_i1_to_acc,rf_q1_to_acc}
-
-### adc_intf module
+### verilog
+#### adc_intf module
 输入adc_data经过天线选择，是否屏蔽一路->adc_data_internal
 经一个延时模块->adc_data_delay
 经异步xpm fifo(写40Madc时钟，写使能20MHz,读100Mm_axis_clk)为100Mhz的data_to_acc_internal
@@ -311,12 +337,12 @@ sample1 = {rf_i1_to_acc,rf_q1_to_acc}
 
 判断是否选择本地回环，选择tx_intf数据和ant_data_after_sel,->bw20_i0,q0,i1,q1
 
-### rx_iq_intf
+#### rx_iq_intf
 已经进行旁路速率匹配->rf_i0_to_acc,
 sample0 = {rf_i0_to_acc,rf_q0_to_acc}；作为接收数据
 sample1 = {rf_i1_to_acc,rf_q1_to_acc}；仅作为采集数据
 
-### byte_to_word_fcs_sn_insert module
+#### byte_to_word_fcs_sn_insert module
 input ofdm_rx接收机解析后的8位byte_out数据，转化为axis总线传输的64位数据
 
 
@@ -420,51 +446,8 @@ struct ieee80211_rx_status {
 };
 
 
-### mac
-![mac_state](./picture/mac_state.JPG)
-不同状态下能够发送的MAC帧类型不同，例如state1下只能发送Class 1型帧。
-![mac_class1](./picture/MAC_class1.JPG)
-![mac_class2](./picture/MAC_class2.JPG)
-![mac_class3](./picture/MAC_class3.JPG)
-![mac_frame_format](./picture//mac_frame_format.JPG);
-![control_field](./picture//control_field.JPG)
-Address 2, Address 3, Sequence Control, Address 4,和Frame Body字段只在某些帧中出现
-
-Type(management,control,data)和Subtype字段共同决定MAC帧类型，To DS为1则表示帧发往DS(distributing system，即AP),From DS表示来自DS
-![duration_field](./picture/duration_field.JPG)duration表示 微秒
-
-Address：
-可能包含BSSID：一个按规则生成的46位随机数
-DA(Destination Address),SA(Source Address),RA(Receiver Address),TA(Transmitter Address),
-
-Sequence Control:
-包含Sequence Number和Fragment Number，Sequence Number用12位标识MSDU序号，Fragment Number用4位标识MSDU单元中片段标号
-
-FCS：
-32位CRC
-
-
-#### control frames
-RTS帧
-![RTS_frame](./picture/RTS_frame.JPG)
-CTS帧
-![CTS_frame](./picture/CTS_frame.JPG)
-ACK帧
-![ACK_fram](./picture/ACK_frame.JPG)
-还有PS-Poll(Power-Save Poll)、CF-End(contension Free-End)、CF-ACK等等
-
-
-CTS/RTS不是每帧都需要建立连接，对于过短数据长度的帧可能没有rts/cts建立，该机制可以在dot11RTSThreshold attribute设为always、never、or 超过length threshold
-CTS/RTS帧，在duration字段包含传输和ACK所的占用信道时间(us)，可以被所有sta接收，用来更新每个sta的nav长度，
-
-
-
-#### data frames
-![DATA_frames](./picture/DATA_frames.JPG)
-#### management frames
-![management_frames](./picture/management_frames.JPG)
-有Beacon帧、IBSS ATIM帧(Announcement Traffic Indication Message)帧、Disassociation帧、Association Request、Association Response、Reassociation Request、Reassociation Response、Probe Request帧等等。
-### csma/ca 
+### verilog
+#### csma/ca 
 80211-2012,9.2,9.3
 80211-2012,362页,各种延时、切换、时间原语定义
 80211-2012,843页，IFS之间计算和关系
@@ -483,7 +466,7 @@ difs = sifs + 2*slot,其本质上实际上都是最基本的SIFS和Slot的一个组合。
 
 csma/ca包括物理载波监听和虚拟载波监听，物理载波监听依靠cca实现，虚拟载波监听通过mac帧的nav字段实现
 物理载波监听为空闲时，nav以slottime为单位回退，信道任意时刻为忙，nav暂停回退
-### rssi
+#### rssi
 ad9361的实时agc_gain状态通过8个gpio_out的pins给到fpga，gpio_status_rf经rx_intf转换到rx_intf_bb基带时钟域信号
 用采样得到的iq值计算iq_rssi_half_db，手动测试的增益correction,还有9361实时输出的gpio_status，
 例子slv_reg57,
@@ -497,23 +480,23 @@ gpio_status = 96;agc_control
 rssi_half_db == 采样IQ计算iq_rssi_half_db - agc增益 + 不同频率下测量得到的ad9361偏移量校准
 
 output rssi_half
-### cca（channel assesment clear）
+#### cca（channel assesment clear）
 包括能量检测和载波监听，能量检测即根据rssi判断，载波监听用是否检测到前导训练符号判断。
 比较接收信号强度和信号强度阈值，结合数据包的接收状态和发送状态，确定信道是否空闲。前导序列成功检测：检测到短长训练序列。能量检测门限：rssi_half_db_th = 87<<1; // -62dBm
 在解码有问题的时候等待7.5us,
 assign ch_idle_rssi = (is_counting?1:( (rssi_half_db<=rssi_half_db_th) && (~demod_is_ongoing) ));
 ch_idle = (ch_idle_rssi&&(~tx_rf_is_ongoing)&&(~cts_toself_rf_is_ongoing)&&(~ack_cts_is_ongoing))
 在信号强度高于门限，解调不在运行、发射机射频不在运行、没有在发cts_toself、也没有在回应ACK时输出ch_idle表示信道空闲
-### tx_control
+#### tx_control
 
-### tx_on_detection
+#### tx_on_detection
 根据一些测量得到的最大延时如基带和射频之间传输的时延、射频关闭后，延长的时间、基带发射开始到发射通道开启、基带发射结束到发送通道关闭；还有openwifi模块内发射的一些状态；output一些指示发送状态的标志。
 根据从tx_intf和tx模块输入的发射接收状态标志信号，驱动输入的延时，输出一些状态标志信号
 tx_core_is_ongoing，tx模块正在进行，change 1st
 tx_bb_is_ongoing，tx_intf正在进行，数据已经给到tx_iq_intf的fifo，2nd
 tx_rf_is_ongoing，rf已经进行时，手动设置延时确定标志位，4th
 tx_chain_on，bb状态和手动设置延时，确定给9361的状态切换spi写入标志，3rd
-### cw_exp
+#### cw_exp
 input来自tx_bit_intf的tx_queue_idx不同后更新cw窗口长度
 if队列索引不同、尝试发送完成、退出重传等条件重置cw窗口至最小，
     else {if重传触发并且小于最大窗口时
@@ -521,10 +504,10 @@ if队列索引不同、尝试发送完成、退出重传等条件重置cw窗口至最小，
         else
         cw_exp保持不变
         }
-### tsf_timer(time syc function)
+#### tsf_timer(time syc function)
 产生一个周期为1us，占空比为1%的小脉冲tsf_pulse_1M,
 从linux给出一个64位的标准时间，并以1us的速度计数,猜测为系统之间同步的信息。radio tap header?
-### phy_rx_parse
+#### phy_rx_parse
 物理帧解析，分辨ack帧和地址
 2Byte framecontrol + 2Byte Duration/ID + 6Byte rx_addr +6Byte tx_addr 固定
 若为控制帧的block ack request 
@@ -537,12 +520,12 @@ else
         +6Byte src_addr
     2Byte Qos
 end
-### pkt_filter_ctl
+#### pkt_filter_ctl
 过滤某些管理帧和控制帧，因为在fpga部分可以实现low mac的csma，部分帧不需要交给上层mac80211处理
 输出block_rx_dma_to_ps信号决定帧是否交给rx_intf再给dma给到上层
 monitor模式下可能会改变frame filter的规则，通过sdr驱动改变标志位改变mac80211状态，同时改变fpga过滤状态
 需要配合linux的mac80211协议栈和mac帧结构同时看
-### spi module 
+#### spi module 
 控制ad9361的收发模式切换，物理上9361在fdd模式，通过写24bit的指令控制本振分频器的开关，
 实现快速切换的tdd工作模式，
 ps选用SPI0_SCLK_O，SPI0_MOSI_O,SPI0_MISO_I(直连9361),SPI0_SS_O，其他连到xpu？？？

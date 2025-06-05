@@ -1,0 +1,1 @@
+cmd_/home/flow/openwifi/driver/rx_intf/rx_intf.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id=sha1  -T scripts/module.lds -o /home/flow/openwifi/driver/rx_intf/rx_intf.ko /home/flow/openwifi/driver/rx_intf/rx_intf.o /home/flow/openwifi/driver/rx_intf/rx_intf.mod.o;  true

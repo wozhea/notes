@@ -1,0 +1,5 @@
+0x3f7c4c62	openofdm_tx_api	/home/flow/openwifi/driver/openofdm_tx/openofdm_tx	EXPORT_SYMBOL	
+0x65d52370	openofdm_rx_api	/home/flow/openwifi/driver/openofdm_rx/openofdm_rx	EXPORT_SYMBOL	
+0x88dc2568	tx_intf_api	/home/flow/openwifi/driver/tx_intf/tx_intf	EXPORT_SYMBOL	
+0xd60f4b9b	rx_intf_api	/home/flow/openwifi/driver/rx_intf/rx_intf	EXPORT_SYMBOL	
+0x2c205cf0	xpu_api	/home/flow/openwifi/driver/xpu/xpu	EXPORT_SYMBOL	

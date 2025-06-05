@@ -1,0 +1,44 @@
+rader-self-csi
+
+9361挂载路径 /sys/bus/iio/devices/iio:device1
+
+
+
+电机，A1正转距离 d =设定值×4mm，A2正转速度=设定值r/min，一转40mm，A3反转距离,A4反转速度，A6A7停留时间t
+一次循环时间=12d / v +2t
+0.2hz，设定值=3,v=7.5
+0.4hz,  设定值=3,v=15.65
+0.6hz,  设定值=3,v=24.54
+0.8hz,  设定值=3,v=34.28
+
+
+
+1个终端运行数据采集
+ssh root@192.168.10.122
+cd /root/openwifi/
+./wgd.sh
+
+设置为监听模式，1信道号
+./monitor_ch.sh sdr0 1
+
+不要信道估计数据，python脚本中要改成一样的
+insmod side_ch.ko num_eq_init=0
+addr2 source address match
+./side_ch_ctl wh1h4001
+./side_ch_ctl wh7h4433225a
+(Above two commands ensure receiving CSI only from XX:XX:44:33:22:5a, which will be set by our own packet injector later)
+./sdrctl dev sdr0 set reg xpu 1 1
+(Above unmute the baseband self-receiving to receive openwifi own TX signal/packet)
+./side_ch_ctl g0
+
+另一个终端运行数据注入
+ssh root@192.168.10.122
+cd /root/openwifi/inject_80211
+./inject_80211 -m g -r 4 -t d -e 0 -b 5a -n 99999999 -s 20 -d 100000 sdr0
+
+1000000/10000=100
+Above command injects the 802.11a/g packet
+
+电脑上
+cd openwifi/user_space/side_ch_ctl_src
+python3 side_info_display.py

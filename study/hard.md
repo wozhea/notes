@@ -713,8 +713,16 @@ var是variable(变量) 的缩写，这个目录中存放这一些易变的文件，一些不断扩充着的东西
 网桥：地面站往机载终端传数据，地检过滤掉源或目的MAC地址为自己网卡的MAC帧，机载PS全是透传，不管IP和端口号，全交给网口(net_rec)，只是判断目的地址和端口为RS232或RS422的包(is_to_rs232,is_to)，把数据转交给串口。
 机载终端往地面传，机载过滤掉源或目的MAC地址为自己网卡的MAC帧，只打上自己的源地址，其他全广播交给PL下传(ps2pl)，RS232或RS422组成包含目的IP(gnd_ip)端口号的UDP包(udp_package)交给PL
 
-Zynq UltraScale+ RFSoC data converter地面ADC采用4GSPS采样速率，一个ADC以AXIS形式两路IQ数据250M的128位数据进行输出，此时每一位I或Q路数据为16位，在adc_interface模块中截取12位数据，输出8路24位IQ数据，[ Q[11:0],I[11:0]]
 
+Zynq UltraScale+ RFSoC data converter地面ADC采用4GSPS采样速率，一个ADC以AXIS形式两路IQ数据250M的128位数据进行输出，此时每一位I或Q路数据为16位，在adc_interface模块中截取12位数据，输出8路24位IQ数据，[ Q[11:0],I[11:0]]，给到16通道信道化接收机channelizer_receiver_complex_16  
+第一步8路复数样本并行延迟一拍，当前时刻输入和8个历史样本  
+第二步16路复数多相滤波处理，16个并行支路  
+第三步16点复信号作16点IFFT蝶形运算  
+    第一级8个2点DFT，延时1个时钟周期
+    第二级4个4点DFT，延时1个时钟周期
+    第三级2个8点DFT，延时5个时钟周期
+    第四级1个16点DFT，延时5给时钟周期
+第四步对奇数子信道输出进行符号反转，乘以(-1)^n
 
 
 

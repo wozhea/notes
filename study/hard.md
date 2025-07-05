@@ -748,7 +748,7 @@ Zynq UltraScale+ RFSoC data converter地面ADC采用4GSPS采样速率，一个ADC以AXIS形式
 ### 系统参数
 发射机发射信号功率约为10W，测量39dBm,整机功耗45W。
 接收机灵敏度约-94dBm,灵敏度计算,10log(KTB)+NF+SNR,-174dBm+70+3+10.5-4 = -94.5dBm;
-50KM路径损耗
+50KM路径损耗135.96dBm
 
 
 

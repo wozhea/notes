@@ -4,7 +4,8 @@ CSI感知
 
 ## wifi结构
 ![whole](./picture/structure.JPG)  
-从用户空间最后到sdr的驱动到FPGA分两条路，一路是应用数据通过系统调用，到套接字到网络协议，给设备接口，最后变成数据帧交给mac80211；另一路是专门对wifi进行管理的工具，如wpa_supplicant,hostapd,iwconfig等，经linux内核空间nl80211、cfg80211协议栈，用户空间的请求通过netlink套接字传递给内核，nl80211是一个netlink协议，专为无线网络管理设计，将用户空间的请求转换为内核能够理解的格式。最后交给mac80211；  
+从用户空间最后到sdr的驱动到FPGA分两条路，一路是应用数据，首先创建一个套接字，然后绑定一个接口(如，以太网接口、 WiFi 接口)。接下来将数据写入到套接字缓冲区，再将缓冲区的数据发送出去。应用程序进入系统调用后，首先进入套接字层，这个过程中一个最重要的数据结构就是sk_buff，一般称为skb 。一个skb结构中的成员包含着缓冲区的地址以及数据长度。然后通过复杂的网络协议层，来到设备无关层，具体接口通过 net_device_ops结构实现，该结构对应了net_device的很多操作。由于mac80211会事先注册ops函数，mac80211也可以看作是一个 net_device ，当一个数据包通过 WiFi 传输时，相关的传输函数 ieee80211_subif_start_xmit将被调用最后变成数据帧交给mac80211，通过 mac80211 中的 local->ops->tx ，注册到设备驱动中的回调函数将会被调用，回调函数在驱动中被定义。另一路通过专门对wifi进行管理的工具，如wpa_supplicant,hostapd,iwconfig等，经linux内核空间nl80211、cfg80211协议栈，交给mac80211；  
+
 nl80211将请求传递给cfg80211,这是一个通用的无线网络配置框架，负责管理无线设备状态，处理WIFI设备的配置比如信道、频率等。
 mac80211是实现80211MAC层的模块，处理所有与WIFI相关的协议逻辑，如帧的生成、发送和接收。  
 mac80211通过ieee80211_ops定义的函数接口api调用sdr.ko驱动，把各类数据和sdr交互，用sdr.ko控制整块fpga的工作。  
@@ -130,9 +131,147 @@ Qos、HT Control的详细解析
 与数据链路层相似，物理层也分为两个子层。上层为PLCP（Physical Layer Convergence Procedure，物理层汇聚协议）子层，下层为PMD（Physical Medium Dependent，物理媒介相关）子层。
 PLCP子层将数据链路层传来的数据帧变成了PLCP协议数据单元（PLCP Protocol Data Unit，PPDU），随后PMD子层将进行数据调制处理并按比特方式进行传输。PLCP接收到PSDU（MAC层的MPDU）后，准备要传输的PSDU（PLCP Service Data Unit ,PLCP服务数据单元），并创建PPDU，将前导部分和PHY报头添加到PSDU上。前导部分用于同步802.11无线发射和接收射频接口卡。创建PPDU后，PMD子层将PPDU调制成数据位后开始传输。
 
-## wifi 具体工程结构
+
+
+## 内核空间
+### nl80211
+介于用户空间与内核空间之间的 API ，可以算是 cfg80211 的前端，也会生成事件(events) 信息。该模块依赖 netlink 协议来在两个空间进行信息交互（注册为Generic Netlink家族）。Netlink 是一个 Linux 中的 socket 类型，用于在内核与用户空间之间传递事件。基本就是一个接口，其只会将数据包装为合适的格式然后在用户与内核空间两边传输。
+
+```
+支持的消息类型：  
+enum nl80211_commands {
+    NL80211_CMD_GET_WIPHY,         // 查询无线设备
+    NL80211_CMD_SET_WIPHY,         // 配置无线设备
+    NL80211_CMD_TRIGGER_SCAN,      // 触发扫描
+    NL80211_CMD_CONNECT,           // 连接网络
+    NL80211_CMD_ROAM,              // 漫游请求
+    NL80211_CMD_FRAME,             // 发送管理帧
+};
+```
+### cfg80211
+这是一个管理、配置 WLAN 设备的中间层，是连通用户空间与内核空间的桥梁，在内核空间提供配置管理服务，用于对无线设备进行配置管理，通过提供一组函数接口（cfg80211_ops）和结构体（wiphy），协调用户空间请求和MAC层操作。硬 MAC 设备和软 MAC 设备都需要 cfg80211 才能工作。
+网络设备驱动要使用cfg80211，需要在cfg80211中注册一系列硬件功能结构体，
+而 mac80211 只是一个驱动 API ，它只支持软件实现的软 MAC 设备。
+主要工作职责：管理无线网络接口（虚拟AP，WDS等）；频谱管理（DFS，信道选择）；认证机制协调（WPA/WPA2）；扫描结果处理；通信参数管理（功率，带宽）
+```
+struct cfg80211_ops {
+    int (*scan)(struct wiphy *wiphy, struct net_device *dev,
+                struct cfg80211_scan_request *request); // 扫描请求
+    int (*connect)(struct wiphy *wiphy, struct net_device *dev,
+                   struct cfg80211_connect_params *sme); // 连接请求
+    int (*disconnect)(struct wiphy *wiphy, struct net_device *dev, 
+                      u16 reason_code); // 断开连接
+
+
+    static int __init cfg80211_init(void)
+{
+    // 1. 创建netlink套接字（nl80211）
+    nl80211_socket = netlink_kernel_create(&init_net, NETLINK_GENERIC, &cfg);
+
+    // 2. 注册sysfs文件系统接口
+    rc = register_netdevice_notifier(&cfg80211_netdev_notifier);
+
+    // 3. 注册通用设备类型
+    rc = wiphy_class_register(&wiphy_class);
+
+    // 4. 初始化RFKill子系统
+    rc = rfkill_global_init();
+}
+};
+```
+### mac80211
+结构体 ieee80211_ops 负责将不同设备驱动实现的回调函数与 mac80211 提供的 API 映射绑定起来。当驱动模块插入注册时，这些回调函数就被注册到 mac80211 里面(通过 ieee80211_alloc_hw 实现)，接着 mac80211 就绑定了相应的回调函数，作为内核模块，实现MAC层的软件部分，提供硬件驱动与上层（cfg80211）之间的适配层根本不用知道具体的名字，以及实现细节等。  
+主要工作职责：802.11帧构造/解析（管理/控制/数据帧）；速率控制算法（Minstrel, PID等）；QoS实现（WMM）；电源管理（PSM）；聚合帧处理（A-MPDU/A-MSDU）
+```
+注册流程// 在cfg80211初始化时调用
+int __init mac80211_init(void)
+{
+    rc = rc80211_minstrel_init();    // 速率控制初始化
+    rc = ieee80211_iface_init();     // 虚拟接口系统初始化
+    rc = rate_ctrl_register();       // 注册速率控制算法
+}
+
+// 驱动注册时调用的核心函数
+int ieee80211_register_hw(struct ieee80211_hw *hw)
+{
+    // 创建wiphy设备
+    wiphy = wiphy_new(&mac80211_config_ops, sizeof(struct ieee80211_local));
+    
+    // 初始化内部状态
+    INIT_LIST_HEAD(&local->interfaces);
+    INIT_LIST_HEAD(&local->rx_handlers);
+    
+    // 向cfg80211注册
+    wiphy_register(wiphy);
+}
+
+int __init mac80211_init(void)
+{
+    // 1. 注册速率控制算法
+    rc = rc80211_minstrel_init();
+
+    // 2. 创建ieee80211_wq工作队列
+    ieee80211_wq = alloc_ordered_workqueue(...);
+
+    // 3. 注册网络设备操作
+    rc = register_pernet_device(&ieee80211_pernet_ops);
+
+    // 4. 注册帧处理函数
+    rc = ieee80211_iface_init();
+}
+```
 ### sdr驱动
-根据of_match_table匹配设备树匹配表，把驱动挂载在设备树对应的节点下。
+工作职责：??直接控制网卡硬件（寄存器访问/DMA配置）；处理硬件中断（接收/发送完成）；实现mac80211定义的操作接口
+
+#### 驱动加载流程
+1.获取设备树节点后，of_match_node函数检查设备树与驱动名是否匹配，把驱动挂载在设备树对应的节点下。
+2.dev = ieee80211_alloc_hw(sizeof(*priv), &openwifi_ops)，关键注册，分配IEEE802.11硬件抽象结构，为wifi设备分配私有数据结构（*priv）和回调函数表(&openwifi_ops),这里会向mac80211
+3.初始化私有数据。（1）读取设备树节点model名称，判断FPGA设备类型。（2）bus_find_device函数在spi_bus_type总线上查找名为 "ad9361-phy" 的设备，获取AD9361设备指针存储到priv->ad9361_phy。（3）bus_find_device函数在platform_bus_type总线上名为的 "cf-ad9361-dds-core-lpc" dds设备，platform_get_drvdata和iio_priv函数获取IIO设备axi_ad9361私有配置dac/adc数据，存储到priv->dds_st
+4.初始化射频参数，rssi校准，带宽，采样率，指定发射/接收天线，开启射频
+5.IEEE802.11硬件参数配置，指定信道频段，复制定义信道和速率表，Ht模式；分配MAC地址。
+6.err = ieee80211_register_hw(dev)向内核注册无线网卡设备，关键注册，
+7.调试接口创建，
+sysfs_create_bin_file(&pdev->dev.kobj, &priv->bin_iq);创建IQ数据传输接口，直接访问基带IQ数据的二进制接口  
+sysfs_create_group(&pdev->dev.kobj, &tx_intf_attribute_group);创建发射控制属性组，调整发射参数的用户空间接口  
+sysfs_create_group(&pdev->dev.kobj, &stat_attribute_group);创建统计信息属性组，实时性能监控数据导出  
+8.队列统计、包传输统计等、传输成功率等40多项系统统计初始化
+9.向cfg80211的wiphy结构体注册信息，初始化并设置设备的射频kill状态：首先获取射频启用状态，设置内核射频kill状态，启动轮询以监视射频开关变化。
+#### 回调函数表
+```
+static const struct ieee80211_ops openwifi_ops = {
+	.tx			       = openwifi_tx,                       //必须，发送单帧处理。
+	.start			   = openwifi_start,
+	.stop			   = openwifi_stop,
+	.add_interface	   = openwifi_add_interface,
+	.remove_interface  = openwifi_remove_interface,
+	.config			   = openwifi_config,
+	.set_antenna       = openwifi_set_antenna,
+	.get_antenna       = openwifi_get_antenna,
+	.bss_info_changed  = openwifi_bss_info_changed,
+	.conf_tx		   = openwifi_conf_tx,
+	.prepare_multicast = openwifi_prepare_multicast,
+	.configure_filter  = openwifi_configure_filter,
+	.rfkill_poll	   = openwifi_rfkill_poll,
+	.get_tsf		   = openwifi_get_tsf,
+	.set_tsf		   = openwifi_set_tsf,
+	.reset_tsf		   = openwifi_reset_tsf,
+	.set_rts_threshold = openwifi_set_rts_threshold,
+	.ampdu_action      = openwifi_ampdu_action,
+	.testmode_cmd	   = openwifi_testmode_cmd,
+};
+```
+
+### 启动和注册流程
+注册初始化从下而上，首先做硬件设备设备注册，当sdr.ko设备驱动初始化时，调用platform_driver函数，根据.of_match_table匹配设备树中的节点.compatable名称对应，设备被探测到后执行硬件驱动初始化函数openwifi_dev_probe函数:1.ieee80211_alloc_hw分配硬件上下文：(参数：sizeof_priv（驱动私有数据大小）和ops（驱动实现的ieee80211_ops）返回struct ieee80211_hw);2.初始化硬件（寄存器、DMA、中断等）;3.调用ieee80211_register_hw(hw),该函数内部会调用mac80211的注册逻辑，最终会调用cfg80211的注册函数（wiphy_register）。  
+然后执行mac80211定义的初始化，ieee80211_register_hw会：1.初始化mac80211的内部状态（软队列、定时器等）。2.通过wiphy_new创建struct wiphy（代表一个无线设备）3.将mac80211实现的配置操作（cfg80211_ops）赋给wiphy 4.调用wiphy_register（这是cfg80211的接口）将wiphy注册到cfg80211。
+然后执行cfg80211的初始化：1.调用nl80211_init（这注册了nl80211的Netlink套接字和操作集）。初始化内部数据结构（如无线设备链表）。2.当驱动调用wiphy_register时，cfg80211将该wiphy添加到全局链表。为这个设备在sysfs中创建节点。通知用户空间（如通过Netlink发送NL80211_CMD_NEW_WIPHY事件）。
+然后做nl80211的初始化，在cfg80211初始化时，通过nl80211_init：调用netlink_kernel_create创建Netlink套接字（协议为NETLINK_GENERIC），注册nl80211到通用Netlink，设置处理函数（nl80211_ops，包含所有的命令处理，例如扫描、连接等）
+用户空间工具（如iw）通过Netlink套接字发送命令和接收事件
+
+
+
+## wifi 具体工程结构
+
 ### verilog
 #### ps引出的接口
 S_AXI_ACP接interconnect2 控制dma1，用于side_ch，数据采集  

@@ -434,23 +434,108 @@ m_axi_mm2s_aclk 100Mhz
 dac_rst:来自软核复位信号
 dac_clk：40Mhz，来自axi_ad9361的L_clk经分频后形成adc_clk
 #### tx_intf_s_axis_i module
-从s00_axis总线把数据从dma给过来；
-例化4个xpm_fifo_sync用于存储数据队列，根据队列索引用于重传？
-从连接到pl的dma读数据，dma另一头连接ps通过dma驱动和ps通信，dma和该模块实现pl和ps之间的通信
-数据最后从DATA_TO_ACC输出
+tx_queue_idx_indication_from_ps	        in	选择数据写入的FIFO队列（0-3）
+tx_queue_idx	                        in	选择ACC读取的FIFO队列（0-3）
+endless_mode	                        in	工作模式切换（0:有限长度, 1:无限连续）
+ACC_ASK_DATA	                        in	加速器数据请求信号
+DATA_TO_ACC	                            out	输出到ACC的数据
+s_axis_recv_data_from_high	            out	指示当前是否处于数据接收状态
+S_AXIS_*	                            in/out	AXI Stream标准接口（时钟、复位、数据、使能等）
+
+核心功能是利用XPM FIFO实现多队列数据缓冲。代码中例化了四个xpm_fifo_sync同步FIFO，每个对应一个传输队列。当AXI Stream数据到达时，tx_queue_idx_indication_from_ps信号决定数据写入哪个FIFO队列。每个FIFO的写入使能信号（fifo_wren0-3）都根据这个选择信号生成。读取端则通过tx_queue_idx选择从哪个FIFO读取数据给加速器（ACC）
+
 #### tx_bit_intf_i module      xxxxxxxx复杂，待看
-最关键的模块，控制交给物理发射机的MAC数据
+最关键的模块，控制交给物理发射机的比特数据
+fcs_in_strobe                           in from接收机，帧校验 
+    // recv bits from s_axis
+tx_queue_idx                            out 模块内fifo队列选择
+linux_prio                              out 
+pkt_cnt                                 out
+data_from_s_axis                        in  数据
+ask_data_from_s_axis                    out 类似ready
+emptyn_from_s_axis                      in s_axis内fifo空
+    // src indication
+auto_start_mode(phy_tx_auto_start_mode),
+    .num_dma_symbol_th(phy_tx_auto_start_num_dma_symbol_th),
+    .tx_config(slv_reg8),
+    .tx_queue_idx_indication_from_ps(slv_reg8[19:18]),
+    .phy_hdr_config(slv_reg17),
+    .ampdu_action_config(slv_reg15),
+    .s_axis_recv_data_from_high(s_axis_recv_data_from_high),
+    .start(phy_tx_start),
+
+        .tx_config_fifo_data_count0(tx_config_fifo_data_count0), 
+        .tx_config_fifo_data_count1(tx_config_fifo_data_count1),
+        .tx_config_fifo_data_count2(tx_config_fifo_data_count2), 
+        .tx_config_fifo_data_count3(tx_config_fifo_data_count3),
+
+        .tx_iq_fifo_empty(tx_iq_fifo_empty),
+        .cts_toself_config(slv_reg4),
+        .send_cts_toself_wait_sifs_top(send_cts_toself_wait_sifs_top),
+        .mac_addr(mac_addr),
+        .tx_try_complete(tx_try_complete),
+        .retrans_in_progress(retrans_in_progress),
+        .start_retrans(start_retrans),
+        .start_tx_ack(start_tx_ack),
+        .slice_en(slice_en),
+        .backoff_done(backoff_done),
+        .tx_bb_is_ongoing(tx_bb_is_ongoing),
+        .ack_tx_flag(ack_tx_flag),
+        .wea_from_xpu(wea_from_xpu),
+        .addra_from_xpu(addra_from_xpu),
+        .dina_from_xpu(dina_from_xpu),
+        .tx_pkt_need_ack(tx_pkt_need_ack),
+        .tx_pkt_retrans_limit(tx_pkt_retrans_limit),
+        .use_ht_aggr(use_ht_aggr),
+        .quit_retrans(quit_retrans),
+        .reset_backoff(reset_backoff),
+        .high_trigger(high_trigger),
+        .tx_control_state_idle(tx_control_state_idle),
+        .bd_wr_idx(bd_wr_idx),
+        // .tx_pkt_num_dma_byte(tx_pkt_num_dma_byte),
+        .douta(douta),
+        .cts_toself_bb_is_ongoing(cts_toself_bb_is_ongoing),
+        .cts_toself_rf_is_ongoing(cts_toself_rf_is_ongoing),
+         
+         // to send out to wifi tx module
+        .tx_end_from_acc(tx_end_from_acc),
+        .bram_data_to_acc(data_to_acc),
+        .bram_addr(bram_addr),
+
+        .tsf_pulse_1M(tsf_pulse_1M)
+	);
+
+
+
 数据经过（）判断选择后给到一个双端口xpm_memory_tdpram，1024×64大小,最后输出64位douta和64位数据data_to_acc，data_to_acc是最后传输的数据；最后交给openofdm_tx发射机。
 #### 两个 edge_to_flip module 
-没用，只是led显示标志位，没有连接
-#### dac_intf module 
-最后数据转换给ad9361
+只是led显示标志位
 #### tx_iq_intf module
-输入发射机数据，经过选择和打包，是否选择随机数据，输出给dac的数据
+rf_i, rf_q	                            in	RF 前端输入的 I/Q 数据
+tx_arbitrary_iq_in	                    in	ARM 下发的任意 I/Q 数据
+wifi_iq_pack	                        out	处理后的 I/Q 数据包，输出至调制器
+tx_hold	                                out	流控信号，暂停上游数据生产
+tx_arbitrary_iq_mode	                in	数据源选择：0 = RF 模式，1 = 软件定义模式
+bb_gain	                                in	RF 模式的数字增益系数
+bb_gain1, bb_gain2	                    in	CSI 模拟的复增益系数
+tx_hold_threshold	                    in	FIFO 数据量阈值，触发 tx_hold 的临界点
+
+主要功能：
+1：IQ数据源选择：射频模式??：接收来自 RF 前端的 I/Q 数据（rf_i, rf_q），经数字增益调整（bb_gain）后写入 FIFO。??软件定义模式??：通过 AXI 寄存器（slv_reg_wren）接收 ARM 处理器下发的任意 I/Q 数据（tx_arbitrary_iq_in），直接写入 FIFO
+2：FIFO数据缓冲：xpm_fifo_sync缓冲数据流，data_count监控FIFO数据量，超过阈值tx_hold_threshold生成控制信号tx_hold，防止溢出
+3：IQ数据实时处理：bb_gain调整幅值，CSI信道加扰模拟器
+
+#### dac_intf module 
+xpm_fifo_async跨时钟域传输dac_data，给输入FIFO数据插0实现2倍上采样，滤波直接ad9361内配置
+ant_flag将有效数据置于天线输出位置，simple_cdd_flag选择天线分集模式,00单天线，01引入1个dac时钟周期延迟2天线分集，1相同数据
 #### tx_status_fifo_i module
-一些发射状态参数延时
+每次传输尝试完成(tx_try_complete有效)时，捕获传输状态信息通过AXI-LITE向上传递，4个深度64位宽32的sync_fifo用于向PS反馈传输状态信息。  
+捕获并传输：1.控制信息num_slot_random:随机退避时隙个数；cw：contension window 退避窗口个数；linux_prio：linux优先级；tx_queue_idx：tx_bit_intf中队列索引；num_retrans重传次数；2.块确认响应：blk_ack_resp_ssn序列号；
+pkt_cnt:包计数；3.确认位图blk_ack_bitmap_low和blk_ack_bitmap_high高位图
+
+
 #### tx_interrupt_selection module
-发射状态终端配置
+发射状态中断信号产生
 
 ## rx_intf
 ### 流程

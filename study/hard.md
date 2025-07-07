@@ -73,9 +73,6 @@ fsbl、bit流、u-boot.elf文件可制作BOOT.BIN文件，可以包含dtb
 
 
 
-
-
-
 bit流固化在linux sys/class/fpga_manager/fpga0/firmware目录下
 
 ### axi_ad9361

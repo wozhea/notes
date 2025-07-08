@@ -271,8 +271,6 @@ static const struct ieee80211_ops openwifi_ops = {
 
 
 ## wifi 具体工程结构
-
-### verilog
 #### ps引出的接口
 S_AXI_ACP接interconnect2 控制dma1，用于side_ch，数据采集  
 S_AXI_HP3接interconnect0 控制dma0，用于tx_intf,发射数据存储  
@@ -428,8 +426,6 @@ ps_clk 100Mhz
 adc_clk 40Mhz
 m_axi_mm2s_aclk 100Mhz
 ## tx_intf
-### verilog
-上层数据从dma0过来，s00_axis作为输入总线
 #### 输入输出接口
 dac_rst:来自软核复位信号
 dac_clk：40Mhz，来自axi_ad9361的L_clk经分频后形成adc_clk
@@ -444,7 +440,7 @@ S_AXIS_*	                           // in/out	AXI Stream标准接口（时钟、复位、数
 
 核心功能是利用XPM FIFO实现多队列数据缓冲。代码中例化了四个xpm_fifo_sync同步FIFO，每个对应一个传输队列。当AXI Stream数据到达时，tx_queue_idx_indication_from_ps信号决定数据写入哪个FIFO队列。每个FIFO的写入使能信号（fifo_wren0-3）都根据这个选择信号生成。读取端则通过tx_queue_idx选择从哪个FIFO读取数据给加速器（ACC）
 
-#### tx_bit_intf_i module      xxxxxxxx复杂，待看
+#### tx_bit_intf_i module      关键
 最关键的模块，控制交给物理发射机的比特数据
 ```
 fcs_in_strobe                         //  in from接收机，帧校验 
@@ -608,7 +604,6 @@ pkt_cnt:包计数；3.确认位图blk_ack_bitmap_low和blk_ack_bitmap_high高位图
 
 #### tx_interrupt_selection module
 发射状态中断信号产生
-
 ## rx_intf
 ### 流程
 adc_intf 
@@ -623,11 +618,14 @@ rx_iq_intf
 已经进行旁路速率匹配->rf_i0_to_acc,
 sample0 = {rf_i0_to_acc,rf_q0_to_acc}
 sample1 = {rf_i1_to_acc,rf_q1_to_acc}
-### verilog
+### 输入输出接口
+
+#### gpio_status
+ad9361的8位gpio口时钟域转换，经一个异步fifo和32点的滑动平均模块，用于指示agc增益
+
 #### adc_intf module
-输入adc_data经过天线选择，是否屏蔽一路->adc_data_internal
-经一个延时模块->adc_data_delay
-经异步xpm fifo(写40Madc时钟，写使能20MHz,读100Mm_axis_clk)为100Mhz的data_to_acc_internal
+主模块内输入adc_data经过天线选择选择输入的天线adc_data_after_sel，是否屏蔽一路->adc_data_internal输入到adc_intf
+通过fifo计数器使能fifo写adc_valid_decimate，做2倍抽取->data_to_acc_internal：经异步xpm fifo(写40Madc时钟，写使能20MHz,读100Mm_axis_clk)为100Mhz的data_to_acc_internal
 经bb_gain，移位，把原本12位的9361数据符号扩展变为16位->ant_data_after_sel(data_to_bb)
 
 
@@ -639,7 +637,12 @@ sample0 = {rf_i0_to_acc,rf_q0_to_acc}；作为接收数据
 sample1 = {rf_i1_to_acc,rf_q1_to_acc}；仅作为采集数据
 
 #### byte_to_word_fcs_sn_insert module
-input ofdm_rx接收机解析后的8位byte_out数据，转化为axis总线传输的64位数据
+1.接收接收机解析后的8位byte_out数据，按顺序组合为axis总线传输的64位数据，通过移位寄存器缓存字节，累计8字节时输出完整word_out，数据流不足8字节时按剩余字节数输出。
+2.在fcs_in_strobe有效，即校验正确时将原始数据替换为校验结果和序列号{fcs_ok,rx_pkt_sn数据包序列号}，辅助判断数据完整性和顺序。
+
+
+#### pl_to_m_axis
+
 
 
 

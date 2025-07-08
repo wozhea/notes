@@ -434,78 +434,150 @@ m_axi_mm2s_aclk 100Mhz
 dac_rst:来自软核复位信号
 dac_clk：40Mhz，来自axi_ad9361的L_clk经分频后形成adc_clk
 #### tx_intf_s_axis_i module
-tx_queue_idx_indication_from_ps	        in	选择数据写入的FIFO队列（0-3）
-tx_queue_idx	                        in	选择ACC读取的FIFO队列（0-3）
-endless_mode	                        in	工作模式切换（0:有限长度, 1:无限连续）
-ACC_ASK_DATA	                        in	加速器数据请求信号
-DATA_TO_ACC	                            out	输出到ACC的数据
-s_axis_recv_data_from_high	            out	指示当前是否处于数据接收状态
-S_AXIS_*	                            in/out	AXI Stream标准接口（时钟、复位、数据、使能等）
+tx_queue_idx_indication_from_ps	       // in	选择数据写入的FIFO队列（0-3）
+tx_queue_idx	                       // in	选择ACC读取的FIFO队列（0-3）
+endless_mode	                        //in	工作模式切换（0:有限长度, 1:无限连续）
+ACC_ASK_DATA	                        //in	加速器数据请求信号
+DATA_TO_ACC	                           // out	输出到ACC的数据
+s_axis_recv_data_from_high	           // out	指示当前是否处于数据接收状态
+S_AXIS_*	                           // in/out	AXI Stream标准接口（时钟、复位、数据、使能等）
 
 核心功能是利用XPM FIFO实现多队列数据缓冲。代码中例化了四个xpm_fifo_sync同步FIFO，每个对应一个传输队列。当AXI Stream数据到达时，tx_queue_idx_indication_from_ps信号决定数据写入哪个FIFO队列。每个FIFO的写入使能信号（fifo_wren0-3）都根据这个选择信号生成。读取端则通过tx_queue_idx选择从哪个FIFO读取数据给加速器（ACC）
 
 #### tx_bit_intf_i module      xxxxxxxx复杂，待看
 最关键的模块，控制交给物理发射机的比特数据
-fcs_in_strobe                           in from接收机，帧校验 
+```
+fcs_in_strobe                         //  in from接收机，帧校验 
     // recv bits from s_axis
-tx_queue_idx                            out 模块内fifo队列选择
-linux_prio                              out 
-pkt_cnt                                 out
-data_from_s_axis                        in  数据
-ask_data_from_s_axis                    out 类似ready
-emptyn_from_s_axis                      in s_axis内fifo空
+tx_queue_idx                           // out 取axis队列索引
+linux_prio                            //  out 
+pkt_cnt                               //  out
+data_from_s_axis                      //  in  数据
+ask_data_from_s_axis                  //  out 类似ready
+emptyn_from_s_axis                    //  in s_axis内fifo空
     // src indication
-auto_start_mode(phy_tx_auto_start_mode),
-    .num_dma_symbol_th(phy_tx_auto_start_num_dma_symbol_th),
-    .tx_config(slv_reg8),
-    .tx_queue_idx_indication_from_ps(slv_reg8[19:18]),
-    .phy_hdr_config(slv_reg17),
-    .ampdu_action_config(slv_reg15),
-    .s_axis_recv_data_from_high(s_axis_recv_data_from_high),
-    .start(phy_tx_start),
+auto_start_mode                       //  in,set by driver
+.num_dma_symbol_th(phy_tx_auto_start_num_dma_symbol_th),  //in .set by driver
+.tx_config(slv_reg8),//
+.tx_queue_idx_indication_from_ps(slv_reg8[19:18]),
+.phy_hdr_config(slv_reg17),
+.ampdu_action_config(slv_reg15),
+.s_axis_recv_data_from_high(s_axis_recv_data_from_high),
+.start(phy_tx_start),                  // in，开始发射
 
-        .tx_config_fifo_data_count0(tx_config_fifo_data_count0), 
-        .tx_config_fifo_data_count1(tx_config_fifo_data_count1),
-        .tx_config_fifo_data_count2(tx_config_fifo_data_count2), 
-        .tx_config_fifo_data_count3(tx_config_fifo_data_count3),
+.tx_config_fifo_data_count0(tx_config_fifo_data_count0), //out,发送队列配置
+.tx_config_fifo_data_count1(tx_config_fifo_data_count1),
+.tx_config_fifo_data_count2(tx_config_fifo_data_count2), 
+.tx_config_fifo_data_count3(tx_config_fifo_data_count3),
+.tx_iq_fifo_empty(tx_iq_fifo_empty),            //in,s_axis内fifo空
+.cts_toself_config(slv_reg4),
+.send_cts_toself_wait_sifs_top(send_cts_toself_wait_sifs_top),
+.mac_addr(mac_addr),
+.tx_try_complete(tx_try_complete),              //in,from xpu
+.retrans_in_progress(retrans_in_progress),      //in,from xpu
+.start_retrans(start_retrans),                  //in,from xpu
+.start_tx_ack(start_tx_ack),                    //in,from xpu
+.slice_en(slice_en),                            //in，from xpu，根据时间切片选择要发送的队列
+.backoff_done(backoff_done),                    //in,from xpu
+.tx_bb_is_ongoing(tx_bb_is_ongoing),
+.ack_tx_flag(ack_tx_flag),
+.wea_from_xpu(wea_from_xpu),
+.addra_from_xpu(addra_from_xpu),
+.dina_from_xpu(dina_from_xpu),
+.tx_pkt_need_ack(tx_pkt_need_ack),
+.tx_pkt_retrans_limit(tx_pkt_retrans_limit),
+.use_ht_aggr(use_ht_aggr),
+.quit_retrans(quit_retrans),                    //out
+.reset_backoff(reset_backoff),                      //out
+.high_trigger(high_trigger),                    //out
+.tx_control_state_idle(tx_control_state_idle),  //in,from xpu
+.bd_wr_idx(bd_wr_idx),                          //in,from tx_status_fifo
+// .tx_pkt_num_dma_byte(tx_pkt_num_dma_byte),
+.douta(douta),                                  //out,重传时改变重传次数
+.cts_toself_bb_is_ongoing(cts_toself_bb_is_ongoing),
+.cts_toself_rf_is_ongoing(cts_toself_rf_is_ongoing),
+ 
+ // to send out to wifi tx module
+.tx_end_from_acc(tx_end_from_acc),              //in,传输完成
+.bram_data_to_acc(data_to_acc),                     //in,数据
+.bram_addr(bram_addr),                          //in，bram地址
+.tsf_pulse_1M(tsf_pulse_1M)
+```
 
-        .tx_iq_fifo_empty(tx_iq_fifo_empty),
-        .cts_toself_config(slv_reg4),
-        .send_cts_toself_wait_sifs_top(send_cts_toself_wait_sifs_top),
-        .mac_addr(mac_addr),
-        .tx_try_complete(tx_try_complete),
-        .retrans_in_progress(retrans_in_progress),
-        .start_retrans(start_retrans),
-        .start_tx_ack(start_tx_ack),
-        .slice_en(slice_en),
-        .backoff_done(backoff_done),
-        .tx_bb_is_ongoing(tx_bb_is_ongoing),
-        .ack_tx_flag(ack_tx_flag),
-        .wea_from_xpu(wea_from_xpu),
-        .addra_from_xpu(addra_from_xpu),
-        .dina_from_xpu(dina_from_xpu),
-        .tx_pkt_need_ack(tx_pkt_need_ack),
-        .tx_pkt_retrans_limit(tx_pkt_retrans_limit),
-        .use_ht_aggr(use_ht_aggr),
-        .quit_retrans(quit_retrans),
-        .reset_backoff(reset_backoff),
-        .high_trigger(high_trigger),
-        .tx_control_state_idle(tx_control_state_idle),
-        .bd_wr_idx(bd_wr_idx),
-        // .tx_pkt_num_dma_byte(tx_pkt_num_dma_byte),
-        .douta(douta),
-        .cts_toself_bb_is_ongoing(cts_toself_bb_is_ongoing),
-        .cts_toself_rf_is_ongoing(cts_toself_rf_is_ongoing),
-         
-         // to send out to wifi tx module
-        .tx_end_from_acc(tx_end_from_acc),
-        .bram_data_to_acc(data_to_acc),
-        .bram_addr(bram_addr),
+关键功能状态和跳转条件
+1. ??WAIT_TO_TRIG (空闲等待)??
+??功能??：检测信道和队列状态，选择发送队列。
+??跳转条件??：
+若 slice_en[N] 使能且对应队列非空（~tx_config_fifo_empty[N] 或 floating_pkt_flag[N]=1）；无基带/RF占用（~tx_bb_is_ongoing、~ack_tx_flag）；
+信道空闲（tx_control_state_idle）且无冲突信号（~tx_try_complete_dl_pulses、~fcs_in_strobe_dl_pulses）。
+??动作??：根据优先级选择 tx_queue_idx_reg，触发 high_trigger 信号。跳转至等待退避状态
+2. ??WAIT_CHANCE (退避等待)??
+??功能??：等待CSMA/CA退避完成。
+??跳转条件??：
+backoff_done=1 时进入 PREPARE_TX_FETCH；如果有正需要处理但位加入帧聚合的数据包，标记为floating pkt_flag[3:0]暂存；
+若队列被禁用（~slice_en[N]），返回 WAIT_TO_TRIG状态并复位退避（reset_backoff=1）
+3. ??PREPARE_TX_FETCH (配置加载)??
+??功能??：根据tx_queue_idx_reg队列索引从对应FIFO读取或加载浮动包的TX配置，tx_config_current和phy_hdr_config_current
+??跳转条件??：直接进入 PREPARE_TX_JUDGE。
+4. ??PREPARE_TX_JUDGE (发送策略决策)??
+??功能??：判断是否启用CTS保护。
+??跳转条件??：
+根据sdr.ko回调函数tx自动设置是否需要cts，通过fifo进入tx_config_current配置的信息，决定是否需要cts保护，use_cts_protect=1 → DO_CTS_TOSELF；
+否则 → CHECK_AGGR。
+5. ??DO_CTS_TOSELF (CTS帧发送)??
+??功能??：生成并发送CTS帧。
+??动作??：
+写BRAM生成CTS帧头（目标MAC+持续时间）；CTS_to_self帧是自身MAC地址的CTS单帧，通过广播形式通知覆盖范围内设备静默预留信道，避免冲突
+等待下游FIFO就绪（tx_iq_fifo_empty）。
+??跳转条件??：CTS数据产生完成且SIFS等待开始 → WAIT_SIFS。
+6. WAIT_SIFS
+功能：等待SIFS时间
+动作：跳转至发送
+7. ??CHECK_AGGR (聚合决策)??
+??功能??：判断是否进行AMPDU聚合。
+??跳转条件??：
+??立即发送??：非HT包、聚合包数量/长度超限、高优先级包抢占；
+??继续聚合??：队列未满且无抢占 → 返回 PREPARE_TX_FETCH 加载下一包；
+??浮动包处理??：当前包留待下次发送 → PREP_PHY_HDR。
+8. ??PREP_PHY_HDR (物理帧头计算)??
+??功能??：计算L-SIG（传统帧）或HT-SIG（HT帧）参数。
+??关键操作??：
+使用除法器计算符号数（div_int）；
+HT帧需计算CRC（ht_sig_crc_calc）。
+??跳转条件??：计算完成 → DO_PHY_HDR1。
+9. ??DO_PHY_HDR1/DO_PHY_HDR2 (帧头写入)??
+??功能??：将帧头写入BRAM。
+??动作??：
+DO_PHY_HDR1：写入L-SIG（传统帧）或HT-SIG部分字段；
+DO_PHY_HDR2：HT帧写入剩余HT-SIG字段。
+??跳转条件??：写入完成 → DO_TX。
+10. ??WAIT_TX_COMP (重传等待)??
+??功能??：处理重传中断后的恢复。
+??跳转条件??：重传完成（tx_try_complete_dl2）→ WAIT_CHANCE。
 
-        .tsf_pulse_1M(tsf_pulse_1M)
-	);
 
+TX配置FIFO，（4个队列64*64）
+存储每个优先级队列的传输控制参数（如CTS配置、速率选择、重传限制等）。属于MAC层内部的策略配置，用于动态调整协议行为，不直接封装在MAC帧中
+工作流程??：
+写操作：当tx_config_fifo_wren[N]有效时，将{cts_toself_config, tx_config}写入对应队列FIFO。
+读操作：状态机在PREPARE_TX_FETCH阶段按需读取配置（tx_config_fifo_rden信号控制）。
 
+??PHY头部配置FIFO组（4个32位宽FIFO）??
+??功能??：存储物理层帧头参数（如帧长度len_psdu、MCS速率rate_hw_value、聚合标志use_ht_aggr等）。
+
+双端口TDPRAM
+1. ??数据帧缓存引擎??
+??功能??：存储待发送的完整数据帧（含L-SIG/HT-SIG帧头和有效载荷）。
+端口分工：
+??Port A??：状态机控制写入（帧头由模块生成，载荷来自AXI-Stream）。
+??Port B??：物理层模块通过bram_addr读取数据。
+??写入逻辑??：
+帧头写入：在DO_PHY_HDR1/2状态写入L-SIG或HT-SIG（地址0~1）。
+载荷写入：在DO_TX状态从AXI-Stream连续写入（地址2~N）。
+??读取逻辑??：物理层通过bram_addr递增读取，经bram_data_to_acc输出。
+2. ??路径复用机制??
+??重传直通??：当retrans_in_progress=1时，Port A切换为外部直通模式（wea_from_xpu和dina_from_xpu），支持重传数据绕过缓存。
+??ACK帧处理??：ack_tx_flag生效时，bram_data_to_acc直接输出dina_from_xpu，实现零延迟响应。
 
 数据经过（）判断选择后给到一个双端口xpm_memory_tdpram，1024×64大小,最后输出64位douta和64位数据data_to_acc，data_to_acc是最后传输的数据；最后交给openofdm_tx发射机。
 #### 两个 edge_to_flip module 

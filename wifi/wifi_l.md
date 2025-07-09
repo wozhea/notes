@@ -640,8 +640,62 @@ sample1 = {rf_i1_to_acc,rf_q1_to_acc}；仅作为采集数据
 1.接收接收机解析后的8位byte_out数据，按顺序组合为axis总线传输的64位数据，通过移位寄存器缓存字节，累计8字节时输出完整word_out，数据流不足8字节时按剩余字节数输出。
 2.在fcs_in_strobe有效，即校验正确时将原始数据替换为校验结果和序列号{fcs_ok,rx_pkt_sn数据包序列号}，辅助判断数据完整性和顺序。
 
-
 #### pl_to_m_axis
+输入输出接口  
+ // port to xpu
+.block_rx_dma_to_ps(block_rx_dma_to_ps),                        //in, 阻塞dma传输
+.block_rx_dma_to_ps_valid(block_rx_dma_to_ps_valid),
+.rssi_half_db_lock_by_sig_valid(rssi_half_db_lock_by_sig_valid),
+.gpio_status_lock_by_sig_valid(gpio_status_lock_by_sig_valid),
+
+// to m_axis and PS
+.start_1trans_to_m_axis(start_1trans_from_acc_to_m_axis),       //out,启动一次传输
+.data_to_m_axis_out(data_from_acc_to_m_axis),                   //out,axis数据
+.data_ready_to_m_axis_out(data_ready_from_acc_to_m_axis),       //out,
+  .monitor_num_dma_symbol_to_ps(monitor_num_dma_symbol_to_ps),  //out,本次传输DMA符号数量
+.m_axis_rst(m_axis_rst),
+.m_axis_tlast(m00_axis_tlast_inner),
+.m_axis_tlast_auto_recover(m00_axis_tlast_auto_recover),        //超时自动恢复
+
+// port to xilinx axi dma
+.s2mm_intr(s2mm_intr),                                          //in,dma1中断
+.rx_pkt_intr(rx_pkt_intr_internal),                             //out,内部产生的报文接收完成中断，延迟触发
+
+// to byte_to_word_fcs_sn_intert
+.rx_pkt_sn_plus_one(rx_pkt_sn_plus_one),                        //正常传输完成1包
+.m_axis_tlast_auto_recover_enable(~slv_reg12[31]),
+.m_axis_tlast_auto_recover_timeout_top(slv_reg12[12:0]),
+.start_1trans_mode(slv_reg5[2:0]),
+.start_1trans_ext_trigger(slv_reg6[0]),
+.src_sel(slv_reg7[0]),
+.tsf_runtime_val(tsf_runtime_val),                              //in,from xpu
+.count_top(slv_reg13[14:0]),
+  //.pad_test(slv_reg13[31]),
+.max_signal_len_th(slv_reg6[31:16]),
+
+.data_from_acc(data_from_acc),                                  //in，from byte_to_word模块转化后的数据
+.data_ready_from_acc(data_ready_from_acc),                      //
+.pkt_rate(pkt_rate),                                            //in,from rx
+  .pkt_len(pkt_len),                                            //in,from rx
+.sig_valid(sig_valid                                            //in,header有效且数据有效
+.ht_aggr(ht_aggr),
+.ht_aggr_last(ht_agg                                            //in,from rx
+  .ht_sgi(ht_sgi),                                              //in,from rx
+.ht_unsupport(ht_uns                                            //in,from rx
+.fcs_valid(fcs_valid                                            //
+
+.rf_iq(rf_iq_loopback),
+.rf_iq_valid(sample_strobe),
+.tsf_pulse_1M(tsf_pulse_1M)
+
+                 WAIT_FOR_PKT = 3'b000,       // 状态0：等待有效报文,设置dma符号传输长度(待传输64位数据数+2个插入信息)
+                 DMA_HEADER0_INSERT = 3'b001,  // 状态1：确定插入TSF时间戳
+                 DMA_HEADER1_INSERT_AND_START=3'b010, // 状态2：插入接收的报文数据，
+{8'd0, ht_aggr_last, ht_aggr, ht_sgi, pkt_rate[7],pkt_rate[3:0],pkt_len, 8'd1, gpio_status_lock_by_sig_valid, 5'd0, rssi_half_db_lock_by_sig_valid}
+                 WAIT_FILTER_FLAG = 3'b011,     // 状态3：等待过滤决策。正常传输时等待接收机标志block_rx_dma_to_ps_valid，传输计时超时则对FIFO进行复位
+                 WAIT_DMA_TLAST = 3'b100,       // 状态4：持续转发数据至AXIS，
+                 WAIT_RST_DONE = 3'b101;        // 状态5：等待8个周期复位，返回0状态
+
 
 
 

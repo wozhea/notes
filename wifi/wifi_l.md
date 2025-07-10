@@ -688,13 +688,13 @@ sample1 = {rf_i1_to_acc,rf_q1_to_acc}；仅作为采集数据
 .rf_iq_valid(sample_strobe),
 .tsf_pulse_1M(tsf_pulse_1M)
 
-                 WAIT_FOR_PKT = 3'b000,       // 状态0：等待有效报文,设置dma符号传输长度(待传输64位数据数+2个插入信息)
-                 DMA_HEADER0_INSERT = 3'b001,  // 状态1：确定插入TSF时间戳
-                 DMA_HEADER1_INSERT_AND_START=3'b010, // 状态2：插入接收的报文数据，
+        WAIT_FOR_PKT = 3'b000,       // 状态0：等待有效报文,设置dma符号传输长度(待传输64位数据数+2个插入信息)
+        DMA_HEADER0_INSERT = 3'b001,  // 状态1：确定插入TSF时间戳
+        DMA_HEADER1_INSERT_AND_START=3'b010, // 状态2：插入接收的报文数据，
 {8'd0, ht_aggr_last, ht_aggr, ht_sgi, pkt_rate[7],pkt_rate[3:0],pkt_len, 8'd1, gpio_status_lock_by_sig_valid, 5'd0, rssi_half_db_lock_by_sig_valid}
-                 WAIT_FILTER_FLAG = 3'b011,     // 状态3：等待过滤决策。正常传输时等待接收机标志block_rx_dma_to_ps_valid，传输计时超时则对FIFO进行复位
-                 WAIT_DMA_TLAST = 3'b100,       // 状态4：持续转发数据至AXIS，
-                 WAIT_RST_DONE = 3'b101;        // 状态5：等待8个周期复位，返回0状态
+        WAIT_FILTER_FLAG = 3'b011,     // 状态3：等待过滤决策。正常传输时等待接收机标志block_rx_dma_to_ps_valid，传输计时超时则对FIFO进行复位
+        WAIT_DMA_TLAST = 3'b100,       // 状态4：持续转发数据至AXIS，
+        WAIT_RST_DONE = 3'b101;        // 状态5：等待8个周期复位，返回0状态
 
 
 

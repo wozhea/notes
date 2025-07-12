@@ -221,7 +221,7 @@ int __init mac80211_init(void)
 }
 ```
 ### sdr驱动
-工作职责：??直接控制网卡硬件（寄存器访问/DMA配置）；处理硬件中断（接收/发送完成）；实现mac80211定义的操作接口
+工作职责：直接控制网卡硬件（寄存器访问/DMA配置）；处理硬件中断（接收/发送完成）；实现mac80211定义的操作接口
 
 #### 驱动加载流程
 1.获取设备树节点后，of_match_node函数检查设备树与驱动名是否匹配，把驱动挂载在设备树对应的节点下。
@@ -384,12 +384,17 @@ ht_crc生成![ht_crc.JPG](./picture/ht_crc.JPG);
   output wire [15:0] result_i,//最后I路数据，交给tx_intf的tx_iq_intf
   output wire [15:0] result_q
 );
+### 信号处理流程
+物理层前导直接从ROM中读出，  
+SIGNAL字段，第一个BRAM地址存储单元存储L_SIG参数，第二个BRAM地址单元存储HT_SIG参数，从第三个BRAM开始为数据
+CRC字段只校验PSDU中的DATA
 
+
+### 状态机
 state1：signal和ht_signal域组帧
 state11：data域组帧
 state2：加扰后的卷积、打孔、交织、导频插入和IFFT
 state3：最后整个数据的输出
-### 以state3描述
 收到开始信号后从S3_WAIT_PKT状态进入S3_L_STF
 输出用简单的查找表模块l_stf_rom，已转化为最后的16位i和q前导数据，发送160samples后进入S3_L_LTF
 输出用简单的查找表模块l_ltf_rom，已转化为最后的16位i和q前导数据，发送160samples两个sym后进入S3_L_SIG
@@ -399,8 +404,7 @@ S3_L_SIG组帧：
 
 
 
-### sdr驱动
-根据of_match_table匹配设备树匹配表，把驱动挂载在设备树对应的节点下。
+
 ### ps引出的接口
 S_AXI_ACP接interconnect2 控制dma1，用于side_ch，数据采集
 
@@ -413,8 +417,6 @@ M_AXI_GP1控主模块的七个IP核
 ps输出  FCLK_CLK0 100Mhz -ps_clk -xpu
         FCLK_CLK1 200Mhz -axi_ad9361_delayclk(7 series)
         FCLK_CLK2 125Mhz
-
-
 
 axi_ad9361输入160MHZdata_clk,输出l_clk 160Mhz分频到40Mhz作为adc,dacIP核的时钟，输入主模块adc_clk
 40Mhz倍频到100Mhz输入主模块m_axi_mm2s_aclk
@@ -501,79 +503,79 @@ auto_start_mode                       //  in,set by driver
 ```
 
 关键功能状态和跳转条件
-1. ??WAIT_TO_TRIG (空闲等待)??
-??功能??：检测信道和队列状态，选择发送队列。
-??跳转条件??：
+1. WAIT_TO_TRIG (空闲等待)
+功能：检测信道和队列状态，选择发送队列。
+跳转条件：
 若 slice_en[N] 使能且对应队列非空（~tx_config_fifo_empty[N] 或 floating_pkt_flag[N]=1）；无基带/RF占用（~tx_bb_is_ongoing、~ack_tx_flag）；
 信道空闲（tx_control_state_idle）且无冲突信号（~tx_try_complete_dl_pulses、~fcs_in_strobe_dl_pulses）。
-??动作??：根据优先级选择 tx_queue_idx_reg，触发 high_trigger 信号。跳转至等待退避状态
-2. ??WAIT_CHANCE (退避等待)??
-??功能??：等待CSMA/CA退避完成。
-??跳转条件??：
+动作：根据优先级选择 tx_queue_idx_reg，触发 high_trigger 信号。跳转至等待退避状态
+2. WAIT_CHANCE (退避等待)
+功能：等待CSMA/CA退避完成。
+跳转条件：
 backoff_done=1 时进入 PREPARE_TX_FETCH；如果有正需要处理但位加入帧聚合的数据包，标记为floating pkt_flag[3:0]暂存；
 若队列被禁用（~slice_en[N]），返回 WAIT_TO_TRIG状态并复位退避（reset_backoff=1）
-3. ??PREPARE_TX_FETCH (配置加载)??
-??功能??：根据tx_queue_idx_reg队列索引从对应FIFO读取或加载浮动包的TX配置，tx_config_current和phy_hdr_config_current
-??跳转条件??：直接进入 PREPARE_TX_JUDGE。
-4. ??PREPARE_TX_JUDGE (发送策略决策)??
-??功能??：判断是否启用CTS保护。
-??跳转条件??：
+3. PREPARE_TX_FETCH (配置加载)
+功能：根据tx_queue_idx_reg队列索引从对应FIFO读取或加载浮动包的TX配置，tx_config_current和phy_hdr_config_current
+跳转条件：直接进入 PREPARE_TX_JUDGE。
+4. PREPARE_TX_JUDGE (发送策略决策)
+功能：判断是否启用CTS保护。
+跳转条件：
 根据sdr.ko回调函数tx自动设置是否需要cts，通过fifo进入tx_config_current配置的信息，决定是否需要cts保护，use_cts_protect=1 → DO_CTS_TOSELF；
 否则 → CHECK_AGGR。
-5. ??DO_CTS_TOSELF (CTS帧发送)??
-??功能??：生成并发送CTS帧。
-??动作??：
+5. DO_CTS_TOSELF (CTS帧发送)
+功能：生成并发送CTS帧。
+动作：
 写BRAM生成CTS帧头（目标MAC+持续时间）；CTS_to_self帧是自身MAC地址的CTS单帧，通过广播形式通知覆盖范围内设备静默预留信道，避免冲突
 等待下游FIFO就绪（tx_iq_fifo_empty）。
-??跳转条件??：CTS数据产生完成且SIFS等待开始 → WAIT_SIFS。
+跳转条件：CTS数据产生完成且SIFS等待开始 → WAIT_SIFS。
 6. WAIT_SIFS
 功能：等待SIFS时间
 动作：跳转至发送
-7. ??CHECK_AGGR (聚合决策)??
-??功能??：判断是否进行AMPDU聚合。
-??跳转条件??：
-??立即发送??：非HT包、聚合包数量/长度超限、高优先级包抢占；
-??继续聚合??：队列未满且无抢占 → 返回 PREPARE_TX_FETCH 加载下一包；
-??浮动包处理??：当前包留待下次发送 → PREP_PHY_HDR。
-8. ??PREP_PHY_HDR (物理帧头计算)??
-??功能??：计算L-SIG（传统帧）或HT-SIG（HT帧）参数。
-??关键操作??：
+7. CHECK_AGGR (聚合决策)
+功能：判断是否进行AMPDU聚合。
+跳转条件：
+立即发送：非HT包、聚合包数量/长度超限、高优先级包抢占；
+继续聚合：队列未满且无抢占 → 返回 PREPARE_TX_FETCH 加载下一包；
+浮动包处理：当前包留待下次发送 → PREP_PHY_HDR。
+8. PREP_PHY_HDR (物理帧头计算)
+功能：计算L-SIG（传统帧）或HT-SIG（HT帧）参数。
+关键操作：
 使用除法器计算符号数（div_int）；
 HT帧需计算CRC（ht_sig_crc_calc）。
-??跳转条件??：计算完成 → DO_PHY_HDR1。
-9. ??DO_PHY_HDR1/DO_PHY_HDR2 (帧头写入)??
-??功能??：将帧头写入BRAM。
-??动作??：
+跳转条件：计算完成 → DO_PHY_HDR1。
+9. DO_PHY_HDR1/DO_PHY_HDR2 (帧头写入)
+功能：将帧头写入BRAM。
+动作：
 DO_PHY_HDR1：写入L-SIG（传统帧）或HT-SIG部分字段；
 DO_PHY_HDR2：HT帧写入剩余HT-SIG字段。
-??跳转条件??：写入完成 → DO_TX。
-10. ??WAIT_TX_COMP (重传等待)??
-??功能??：处理重传中断后的恢复。
-??跳转条件??：重传完成（tx_try_complete_dl2）→ WAIT_CHANCE。
+跳转条件：写入完成 → DO_TX。
+10. WAIT_TX_COMP (重传等待)
+功能：处理重传中断后的恢复。
+跳转条件：重传完成（tx_try_complete_dl2）→ WAIT_CHANCE。
 
 
 TX配置FIFO，（4个队列64*64）
 存储每个优先级队列的传输控制参数（如CTS配置、速率选择、重传限制等）。属于MAC层内部的策略配置，用于动态调整协议行为，不直接封装在MAC帧中
-工作流程??：
+工作流程：
 写操作：当tx_config_fifo_wren[N]有效时，将{cts_toself_config, tx_config}写入对应队列FIFO。
 读操作：状态机在PREPARE_TX_FETCH阶段按需读取配置（tx_config_fifo_rden信号控制）。
 
-??PHY头部配置FIFO组（4个32位宽FIFO）??
-??功能??：存储物理层帧头参数（如帧长度len_psdu、MCS速率rate_hw_value、聚合标志use_ht_aggr等）。
+PHY头部配置FIFO组（4个32位宽FIFO）
+功能：存储物理层帧头参数（如帧长度len_psdu、MCS速率rate_hw_value、聚合标志use_ht_aggr等）。
 
 双端口TDPRAM
-1. ??数据帧缓存引擎??
-??功能??：存储待发送的完整数据帧（含L-SIG/HT-SIG帧头和有效载荷）。
+1. 数据帧缓存引擎
+功能：存储待发送的完整数据帧（含L-SIG/HT-SIG帧头和有效载荷）。
 端口分工：
-??Port A??：状态机控制写入（帧头由模块生成，载荷来自AXI-Stream）。
-??Port B??：物理层模块通过bram_addr读取数据。
-??写入逻辑??：
+Port A：状态机控制写入（帧头由模块生成，载荷来自AXI-Stream）。
+Port B：物理层模块通过bram_addr读取数据。
+写入逻辑：
 帧头写入：在DO_PHY_HDR1/2状态写入L-SIG或HT-SIG（地址0~1）。
 载荷写入：在DO_TX状态从AXI-Stream连续写入（地址2~N）。
-??读取逻辑??：物理层通过bram_addr递增读取，经bram_data_to_acc输出。
-2. ??路径复用机制??
-??重传直通??：当retrans_in_progress=1时，Port A切换为外部直通模式（wea_from_xpu和dina_from_xpu），支持重传数据绕过缓存。
-??ACK帧处理??：ack_tx_flag生效时，bram_data_to_acc直接输出dina_from_xpu，实现零延迟响应。
+读取逻辑：物理层通过bram_addr递增读取，经bram_data_to_acc输出。
+2. 路径复用机制
+重传直通：当retrans_in_progress=1时，Port A切换为外部直通模式（wea_from_xpu和dina_from_xpu），支持重传数据绕过缓存。
+ACK帧处理：ack_tx_flag生效时，bram_data_to_acc直接输出dina_from_xpu，实现零延迟响应。
 
 数据经过（）判断选择后给到一个双端口xpm_memory_tdpram，1024×64大小,最后输出64位douta和64位数据data_to_acc，data_to_acc是最后传输的数据；最后交给openofdm_tx发射机。
 #### 两个 edge_to_flip module 
@@ -589,7 +591,8 @@ bb_gain1, bb_gain2	                    in	CSI 模拟的复增益系数
 tx_hold_threshold	                    in	FIFO 数据量阈值，触发 tx_hold 的临界点
 
 主要功能：
-1：IQ数据源选择：射频模式??：接收来自 RF 前端的 I/Q 数据（rf_i, rf_q），经数字增益调整（bb_gain）后写入 FIFO。??软件定义模式??：通过 AXI 寄存器（slv_reg_wren）接收 ARM 处理器下发的任意 I/Q 数据（tx_arbitrary_iq_in），直接写入 FIFO
+1：IQ数据源选择：射频模式：接收来自 RF 前端的 I/Q 数据（rf_i, rf_q），经数字增益调整（bb_gain）后写入 FIFO。
+软件定义模式：通过 AXI 寄存器（slv_reg_wren）接收 ARM 处理器下发的任意 I/Q 数据（tx_arbitrary_iq_in），直接写入 FIFO
 2：FIFO数据缓冲：xpm_fifo_sync缓冲数据流，data_count监控FIFO数据量，超过阈值tx_hold_threshold生成控制信号tx_hold，防止溢出
 3：IQ数据实时处理：bb_gain调整幅值，CSI信道加扰模拟器
 

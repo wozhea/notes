@@ -385,22 +385,24 @@ ht_crc生成![ht_crc.JPG](./picture/ht_crc.JPG);
   output wire [15:0] result_q
 );
 ### 信号处理流程
-物理层前导直接从ROM中读出，  
+一旦开始发射，前导直接从ROM读出，开始输出IQ数据  
 SIGNAL字段，第一个BRAM地址存储单元存储L_SIG参数，第二个BRAM地址单元存储HT_SIG参数，从第三个BRAM开始为数据
-CRC字段只校验PSDU中的DATA
+CRC字段只校验PSDU中的DATA，CRC后跟TAIL和PAD。（有必要自己再加一份CRC吗？？？）
+一个普通OFDM符号处理周期3.78us,小于4us符号周期
 
 
 ### 状态机
-state1：signal和ht_signal域组帧
-state11：data域组帧
-state2：加扰后的卷积、打孔、交织、导频插入和IFFT
-state3：最后整个数据的输出
+state1：SIGANL域和DATA域组帧，控制数据比特生成(加扰，从并行数据变为串行数据)，根据读bit数据计数跳转，只跳转一圈
+state11：data域跳转，只跳转一圈，在S1_DATA状态内根据psdu计数跳转
+state2：加扰后的卷积、打孔、交织、导频插入和IFFT，不停跳转，每个OFDM符号内跳转
+state3：最后IQ数据的选择，根据帧格式跳转。
+
+
 收到开始信号后从S3_WAIT_PKT状态进入S3_L_STF
 输出用简单的查找表模块l_stf_rom，已转化为最后的16位i和q前导数据，发送160samples后进入S3_L_LTF
 输出用简单的查找表模块l_ltf_rom，已转化为最后的16位i和q前导数据，发送160samples两个sym后进入S3_L_SIG
+S3_L_SIG组帧：以plcp_bit计数，取前两个BRAM地址的数据作为物理层发射前导和发射参数设定，取bram_din前[0:23]为signal域，设定对应发射参数，根据bram_din[24]判断PKT类型为LEGACY或HT(DATA service域头为0，HT signal头为1)，LEGACY则进入S1_DATA状态，HT则进入S1_HT_SIG，两个HT_SIGNAL符号后跟HT_STF和HT_LTF，直接从ROM读出，随后进入正常S1_DATA状态
 
-S3_L_SIG组帧：
-以plcp_bit计数，取bram_din前[0:23]为signal域，设定对应发射参数，根据bram_din[24]判断PKT类型为LEGACY或HT(DATA service域头为0，HT signal头为1)，LEGACY则进入S1_DATA状态，HT则进入S1_HT_SIG，
 
 
 

@@ -387,8 +387,10 @@ ht_crcÉú³É![ht_crc.JPG](./picture/ht_crc.JPG);
 ### ĞÅºÅ´¦ÀíÁ÷³Ì
 Ò»µ©¿ªÊ¼·¢Éä£¬Ç°µ¼Ö±½Ó´ÓROM¶Á³ö£¬¿ªÊ¼Êä³öIQÊı¾İ  
 SIGNAL×Ö¶Î£¬µÚÒ»¸öBRAMµØÖ·´æ´¢µ¥Ôª´æ´¢L_SIG²ÎÊı£¬µÚ¶ş¸öBRAMµØÖ·µ¥Ôª´æ´¢HT_SIG²ÎÊı£¬´ÓµÚÈı¸öBRAM¿ªÊ¼ÎªÊı¾İ
-CRC×Ö¶ÎÖ»Ğ£ÑéPSDUÖĞµÄDATA£¬CRCºó¸úTAILºÍPAD¡££¨ÓĞ±ØÒª×Ô¼ºÔÙ¼ÓÒ»·İCRCÂğ£¿£¿£¿£©
+CRC×Ö¶ÎÖ»Ğ£ÑéPSDUÖĞµÄDATA£¬CRCºó¸úTAILºÍPAD¡££¨ÓĞ±ØÒª×Ô¼ºÔÙ¼ÓÒ»´ÎCRCÂğ£¿£¿£¿£©
 Ò»¸öÆÕÍ¨OFDM·ûºÅ´¦ÀíÖÜÆÚ3.78us,Ğ¡ÓÚ4us·ûºÅÖÜÆÚ
+
+½øÈëµ½Êı¾İÎ»ºó£¬64Î»µÄÊı¾İÊ×ÏÈ¾­¹ı¼ÆÊıÒ»¸öÒ»¸ö¶ÁÈë±ä³É´®ĞĞÊı¾İ£¬Í¨¹ı×éºÏÂß¼­ÅĞ¶Ïµ±Ç°state1ºÍstate11×´Ì¬Ñ¡Ôñ¼ÓÈÅ²Ù×÷£¬±ä³É¿ÉÒÔÍ³Ò»OFDM·ûºÅĞÅµÀ±àÂëµÄ±ÈÌØ¡£ÏÈËÍÈë¾í»ıÆ÷±äÎª´®ĞĞ2Î»±ÈÌØ£¬ÔÚÕâÖ®Ç°¶¼ÊÇ¿ÉÒÔË³ĞòÖ´ĞĞµÄ£¬ËæºóÒªËÍÈë´ò¿×ºÍ½»Ö¯Æ÷£¬ĞèÒª´¦ÀíÊ±¼ä£¬ËùÒÔÔÚ¾í»ıºÍ´ò¿×Ö®¼äĞèÒªFIFO£¬Í¨¹ıFIFO×´Ì¬Î»¿ØÖÆÇ°ºóÄ£¿éÊ¹ÄÜ¡£´ò¿×ºÍ½»Ö¯Í¨¹ıÊäÈëËÙÂÊºÍ±ÈÌØÎ»ÖÃ£¬Êä³ö²éÕÒ±íĞĞÁĞµØÖ·ºÍÊÇ·ñ´ò¿×ĞÅÏ¢£¬Ö±½ÓÂÔ¹ı´ò¿×Î»£¬Í¨¹ıµØÖ·¶ÁÈ¡½»Ö¯ºóµÄ´ıµ÷ÖÆµÄ±ÈÌØ¡£´ıµ÷ÖÆµÄ±ÈÌØÍ¨¹ı²éÕÒ±íÍê³ÉÁ¿»¯ºÍÊı×ÖÓ³Éäµ÷ÖÆ¡£Í¨¹ı¼ÆÊıºÍ×éºÏÂß¼­Éú³Éµ±Ç°·ûºÅµÄµ¼Æµ·ûºÅ£¬½«Êı¾İºÍµ¼ÆµºÍ0²åÈëµ½¶ÔÓ¦Î»ÖÃ¡£½«Êı¾İËÍÈëIFFTÄ£¿é£¬Êä³ö×îºóµÄOFDM·ûºÅ¡£
 
 
 ### ×´Ì¬»ú
@@ -728,10 +730,11 @@ S_DECODE_DATAÏÂ½øĞĞÊı¾İÎ»½â°ü£¬½â°üÍêºóÈô³¤¶ÈĞèÒª²¹³äÔòËÍÈëS_MPDU_PAD£¬²»ĞèÒªÔò½
 input:enable½ÓÊÕ»ú½øÈë½âÂë×´Ì¬Ç°Ê¹ÄÜ£¬iq_data,dc_running_sum_thÖ±Á÷Æ«ÖÃÃÅÏŞ£¬power_triggerÄÜÁ¿¼ì²â´¥·¢£¬min/max_signal_len_th×î³¤×î¶ÌĞÅºÅ³¤¶ÈÃÅÏŞ£¬signal_len½ÓÊÕ»ú½âµ÷ĞÅºÅ³¤¶È
 output:receiver_rstÓÃÓÚ¸´Î»wifi½ÓÊÕ»ú£¬Òì³£×´Ì¬¸´Î»
 
-receiver_rst_internal£¬¶ÔÊäÈëÊı¾İ·ûºÅÎ»½øĞĞ32µãÆ½¾ù£¬¼ÆËãÖ±Á÷·ÖÁ¿£¬ÈôÎª0Ôò½»ÌæÑ¡Ôñ-1ºÍ1±ÜÃâÒì³££¬ÈôÖ±Á÷·ÖÁ¿´óÓÚãĞÖµ£¬¸´Î»£¬
-power_trigger£¬½ÓÊÕ»ú¼ì²âÄÜÁ¿´óÓÚÄÜÁ¿ÃÅÏŞ£¬¸´Î»
-equalizer_monitor_rst£¬¾ùºâÆ÷¹éÒ»»¯ĞÇ×ùÍ¼¾ø¶ÔÖµ¹ıĞ¡£¬ÎŞ·¨½âµ÷£¬¸´Î»
-signal_len_rst£¬½âµ÷³öÀ´µÄsignal´óÓÚ»òĞ¡ÓÚĞ­Òé¹æ¶¨³¤¶È¡£¸´Î»¡£
+power_trigger£¬½ÓÊÕ»ú¼ì²âÄÜÁ¿´óÓÚÄÜÁ¿ÃÅÏŞ
+ÈıÖÖÇé¿ö¸´Î»
+receiver_rst_internal£¬¼à²âÖ±Á÷Æ«ÒÆ£¬¶ÔÊäÈëÊı¾İ·ûºÅÎ»½øĞĞ32µãÆ½¾ù£¬¼ÆËãÖ±Á÷·ÖÁ¿£¬ÈôÎª0Ôò½»ÌæÑ¡Ôñ-1ºÍ1±ÜÃâÒì³££¬ÈôÖ±Á÷·ÖÁ¿´óÓÚãĞÖµ£¬¸´Î»¡£
+equalizer_monitor_rst£¬¾ùºâÆ÷¹éÒ»»¯ĞÇ×ùµãµÄ¾ø¶ÔÖµ¹ıĞ¡£¬ÎŞ·¨½âµ÷¡£
+signal_len_rst£¬½âµ÷³öÀ´µÄÎïÀíÍ·signal´óÓÚ»òĞ¡ÓÚĞ­Òé¹æ¶¨³¤¶È¡£
 
 #### sync_short
 ²¶»ñWIFIÎïÀíÖ¡Í·£¬´ÖÆµÆ«¹À¼Æ
@@ -828,7 +831,8 @@ csma/ca°üÀ¨ÎïÀíÔØ²¨¼àÌıºÍĞéÄâÔØ²¨¼àÌı£¬ÎïÀíÔØ²¨¼àÌıÒÀ¿¿ccaÊµÏÖ£¬ĞéÄâÔØ²¨¼àÌıÍ¨¹ı
 ad9361µÄÊµÊ±agc_gain×´Ì¬Í¨¹ı8¸ögpio_outµÄpins¸øµ½fpga£¬gpio_status_rf¾­rx_intf×ª»»µ½rx_intf_bb»ù´øÊ±ÖÓÓòĞÅºÅ
 ÓÃ²ÉÑùµÃµ½µÄiqÖµ¼ÆËãiq_rssi_half_db£¬ÊÖ¶¯²âÊÔµÄÔöÒæcorrection,»¹ÓĞ9361ÊµÊ±Êä³öµÄgpio_status£¬
 Àı×Óslv_reg57,
-{gpio_status_delay[6:0],iq_rssi_half_db,1'b0,(~ch_idle_final),(tx_core_is_ongoing|tx_bb_is_ongoing|tx_rf_is_ongoing|cts_toself_rf_is_ongoing|ack_cts_is_ongoing), demod_is_ongoing,(~gpio_status_delay[7]),rssi_half_db};//rssi_half_db 11bit, iq_rssi_half_db 9bit
+{gpio_status_delay[6:0],iq_rssi_half_db,1'b0,(~ch_idle_final),(tx_core_is_ongoing|tx_bb_is_ongoing|tx_rf_is_ongoing|cts_toself_rf_is_ongoing|ack_cts_is_ongoing), demod_is_ongoing,(~gpio_status_delay[7]),rssi_half_db};
+//rssi_half_db 11bit, iq_rssi_half_db 9bit
 iq_rssi_half_db = 115;Öµ
 rssi_half_db_offset = 150;hardware_gain
 gpio_status = 96;agc_control
@@ -837,7 +841,7 @@ gpio_status = 96;agc_control
 
 rssi_half_db == ²ÉÑùIQ¼ÆËãiq_rssi_half_db - agcÔöÒæ + ²»Í¬ÆµÂÊÏÂ²âÁ¿µÃµ½µÄad9361Æ«ÒÆÁ¿Ğ£×¼
 
-output rssi_half
+output rssi_half_db
 #### cca£¨channel assesment clear£©
 °üÀ¨ÄÜÁ¿¼ì²âºÍÔØ²¨¼àÌı£¬ÄÜÁ¿¼ì²â¼´¸ù¾İrssiÅĞ¶Ï£¬ÔØ²¨¼àÌıÓÃÊÇ·ñ¼ì²âµ½Ç°µ¼ÑµÁ··ûºÅÅĞ¶Ï¡£
 ±È½Ï½ÓÊÕĞÅºÅÇ¿¶ÈºÍĞÅºÅÇ¿¶ÈãĞÖµ£¬½áºÏÊı¾İ°üµÄ½ÓÊÕ×´Ì¬ºÍ·¢ËÍ×´Ì¬£¬È·¶¨ĞÅµÀÊÇ·ñ¿ÕÏĞ¡£Ç°µ¼ĞòÁĞ³É¹¦¼ì²â£º¼ì²âµ½¶Ì³¤ÑµÁ·ĞòÁĞ¡£ÄÜÁ¿¼ì²âÃÅÏŞ£ºrssi_half_db_th = 87<<1; // -62dBm

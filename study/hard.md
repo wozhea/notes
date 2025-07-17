@@ -311,9 +311,12 @@ xpm_fifo£ºwr_data_countÊýÁ¿ÔÚÉî¶ÈºÍÉî¶È+1ÇÐ»»£¬ÈçdepthÎª16µÄfifo£¬wr_data_countÒ
 ### initial
 initial³öÏÖÔÚÉè¼ÆÎÄ¼þÖÐ£¬Ò»°ãÖ»ÊÇÓÃÓÚ³õÊ¼»¯£¬ÓÃÓÚram¡¢countµÈ£¬Ïàµ±ÓÚÈí¼þµÄ³õÊ¼»¯£¬²»»áÉú³ÉÊµ¼ÊµçÂ·
 Ò»¸öÄ£¿éÄÚ¹ý³Ì½á¹¹always¿éºÍinitial£¨²»¿É×ÛºÏ£©Ö®¼ä²¢ÐÐ£¬½á¹¹¿éÄÚ¿ÉÒÔÀí½âÎªË³ÐòÖ´ÐÐ£¬·Ç×èÈûÓï¾ä³ýÍâ£¬¸ö initial Óï¾ä»ò always Óï¾ä¶¼»á²úÉúÒ»¸ö¶ÀÁ¢µÄ¿ØÖÆÁ÷£¬Ö´ÐÐÊ±¼ä¶¼ÊÇ´Ó 0 Ê±¿Ì¿ªÊ¼
-## CÓïÑÔÑ§Ï°
+# CÓïÑÔ
 ### ¸ÅÄî
-CÔ´ÎÄ¼þ-Ô¤´¦Àí-±àÒë-»ã±à-Á´½Ó-¿ÉÖ´ÐÐÎÄ¼þ
+CÔ´ÎÄ¼þ-Ô¤´¦Àí-±àÒë£¨.s£©-»ã±à(.o)-Á´½Ó(+++)-¿ÉÖ´ÐÐÎÄ¼þ
+GCC,×î³õÈ«ÃûGNU C Compiler£¬Ëæ×ÅÖ§³ÖÓïÑÔÔ½À´Ô½¶à£¬Ãû³Æ±ä³ÉÁËGNU Compiler Collection,·­Òë¹Ù
+gcc -o Êä³öÎÄ¼þÃû ÊäÈëÎÄ¼þÃû 
+
 ### ±äÁ¿³£Á¿
 ±äÁ¿¶¨Òå:[´æ´¢ÀàÐÍ] Êý¾ÝÀàÐÍ ±êÊ¶·û = Öµ
                    TYPE     NAME = VALUE£»
@@ -618,11 +621,22 @@ mac±í£º²ûÊömacµØÖ·Óë½Ó¿ÚµÄ¶ÔÓ¦¹ØÏµ£¬mac±í¶þ²ãÉè±¸²ÅÓÐ£¬Èç½»»»»ú
 
 
 # linux
+## Çý¶¯
+Çý¶¯³ÌÐòÓ¦¸Ã´¦ÀíÈçºÎÊ¹Ó²¼þ¿ÉÓÃµÄÎÊÌâ£¬Ö»¿¼ÂÇ¹¦ÄÜ£¬¶ø½«ÔõÑùÊ¹ÓÃÓ²¼þµÄÎÊÌâÁô¸øÉÏ²ãÓ¦ÓÃ£¬²»¿¼ÂÇ²ßÂÔ¡£
+linuxÏÂµÄÇý¶¯Ö÷Òª¿ÉÒÔ·ÖÎªÈýÀà
+1.×Ö·ûÉè±¸Çý¶¯¡£Í¨¹ýÊý¾ÝÁ÷Ê½·ÃÎÊ£¬²»Ö§³ÖËæ»úÆ«ÒÆ£¬¼òµ¥Éè±¸ÎÞÐè¸´ÔÓ»º´æ»òµ÷¶È£¬µäÐÍÉè±¸Èç¼üÅÌ¡¢Êó±ê¡¢´®¿Ú¡¢´«¸ÐÆ÷£¬×Ö·ûÖÕ¶Ë(/dev/console)´®¿Ú(/dev/ttys0)¡£ÐèÒªÔÚ/dev½ÚµãÏÂ£¬ÓÃ»§Í¨¹ýÄÚºË½Ó¿Úfile_operationsÖ±½ÓÍ¨¹ýopen()¡¢close()¡¢read()¡¢write()µÈÎÄ¼þ²Ù×÷·ÃÎÊÉè±¸£¬
+2.¿éÉè±¸Çý¶¯¡£Êý¾Ý°´¿é×éÖ¯Ëæ»ú·ÃÎÊ£¬ÒÀÀµIOµ÷¶ÈÆ÷ÓÅ»¯´ÅÅÌÑ°µÀ£¬»º´æ»úÖÆºÍµ÷¶ÈËã·¨ÖÁ¹ØÖØÒª£¬ÐèÒª¶ÀÁ¢ÓÚ×Ö·ûÉè±¸Éè¼Æ¿ò¼Ü£¬µäÐÍÉè±¸ÈçÓ²ÅÌ¡¢SSD¡¢UÅÌµÈ´æ´¢½éÖÊ¡£ÐèÒªÔÚ/dev½ÚµãÏÂ£¬ÓÃ»§Í¨¹ýÄÚºË½Ó¿Úblock_device_operaionsµÄÎÄ¼þÏµÍ³·ÃÎÊÉè±¸¡£
+3.ÍøÂçÉè±¸Çý¶¯¡£µäÐÍµÄ·ÇÎÄ¼þÉè±¸£¬²»Ó³Éäµ½/dev£¬Êý¾ÝÒÔsk_buff½á¹¹Ìå·â×°£¬Ö±½Ó¶Ô½ÓÍøÂçÐ­ÒéÕ»£¬µäÐÍÉè±¸ÎªÒÔÌ«Íø¿¨¡¢ÎÞÏßÍø¿¨¡£Í¨¹ý×¢²ánet_device½á¹¹ÌåµÄÍø¿¨Éè±¸´¦ÀíÊÕ·¢°üÂß¼­¡£ÓÃ»§Í¨¹ýsocketµÄapi½øÐÐ·ÃÎÊÉè±¸¡£ÍøÂçÉè±¸Î§ÈÆÊý¾Ý°üµÄ´«ÊäºÍ½ÓÊÕ¶øÉè¼Æ
+
+Ä£¿éµÄÍË³öº¯Êý±ØÐë×ÐÏ¸³·Ïú³õÊ¼»¯º¯ÊýËù×öµÄÒ»ÇÐ£¬·ñÔòÔÚÏµÍ³ÖØÐÂÒýµ¼Ç°Ä³Ð©¶«Î÷¾Í»á²ÐÁôÔÚÏµÍ³ÖÐ¡£
+
+²¢·¢£¬Ê×ÏÈ£¬LinuxÉè±¸ÖÐÍ¨³£ÔËÐÐ¶à¸ö²¢·¢½ø³Ì£¬²¢ÇÒ¿ÉÄÜÓÐ¶à¸ö½ø³ÌÍ¬Ê±Ê¹ÓÃÇý¶¯³ÌÐò£¬Æä´Î´ó¶àÊýÉè±¸ÄÜ¹»ÖÐ¶Ï´¦ÀíÆ÷£¬ÖÐ¶Ï´¦Àí³ÌÐòÒì²½ÔËÐÐ£¬ÇÒ¿ÉÄÜÔÚÇý¶¯³ÌÐòÊÔÍ¼´¦ÀíÆäËûÈÎÎñÊ±±»µ÷ÓÃ¡£
+
+
+
+
 ## ÓÃ»§Ä£Ê½
 ÓÃ»§Ä£Ê½µÄ½ø³ÌÍ¨¹ýÏµÍ³µ÷ÓÃÏòÄÚºË·¢Æðµ÷ÓÃÊ±£¬CPU·¢ÉúÖÐ¶Ï½øÈëÄÚºËÄ£Ê½£¬¸ù¾ÝÇëÇó×÷´¦Àí£¬Íê³ÉËùÓÐÏµÍ³µ÷ÓÃºó·µ»ØÓÃ»§Ä£Ê½
-
-
-
 ## ÄÚ´æ¹ÜÀíµ¥ÔªMMU
 ¹ýÈ¥²¢Ã»ÓÐÄÚ´æ³éÏóµÄ¸ÅÄî£¬ÓÃ»§³ÌÐòÄÜÈÎÒâ·ÃÎÊÄÚ´æ£¬ÆÆ»µ²Ù×÷ÏµÍ³£¬Í¬Ê±ÔËÐÐ¶à¸öÏß³ÌÌØ±ðÀ§ÄÑ¡£
 ²Ù×÷ÏµÍ³ÎªÁËÖ§³Ö¶àÏß³Ì£¬ÐèÒª¶ÔÎïÀíÄÚ´æ×öÒ»²ã³éÏó£¬Ò²¾ÍÊÇ¡¸µØÖ·¿Õ¼ä¡¹(Address Space)£¬Ò»¸ö½ø³ÌµÄµØÖ·¿Õ¼ä°üº¬ÁË¸Ã½ø³ÌËùÓÐÏà¹ØÄÚ´æ£¬±ÈÈçcode/stack/heap¡£

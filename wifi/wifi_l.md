@@ -2,6 +2,11 @@
 无人机群远距离自组织多跳网络，机间链路协作，物理层，动态路由协议
 CSI感知
 
+Another way to limit Tx leakage is to switch to RF port B during receiving, which is grounded on some boards. This has a slightly faster reaction time (since powering the Tx LO divider on takes about 160ns), but cannot totally suppress self-interference.
+The xpu_*.tcl sets the SPI data to control the RF port, which is address 0x004. In ip_repo_gen.tcl, by default it is set to control the Tx LO divider (24'h088A01), which indeed is register 0x051. Hope this clarifies it.
+
+
+
 ## wifi结构
 ![whole](./picture/structure.JPG)  
 从用户空间最后到sdr的驱动到FPGA分两条路，一路是应用数据，首先创建一个套接字，然后绑定一个接口(如，以太网接口、 WiFi 接口)。接下来将数据写入到套接字缓冲区，再将缓冲区的数据发送出去。应用程序进入系统调用后，首先进入套接字层，这个过程中一个最重要的数据结构就是sk_buff，一般称为skb 。一个skb结构中的成员包含着缓冲区的地址以及数据长度。然后通过复杂的网络协议层，来到设备无关层，具体接口通过 net_device_ops结构实现，该结构对应了net_device的很多操作。由于mac80211会事先注册ops函数，mac80211也可以看作是一个 net_device ，当一个数据包通过 WiFi 传输时，相关的传输函数 ieee80211_subif_start_xmit将被调用最后变成数据帧交给mac80211，通过 mac80211 中的 local->ops->tx ，注册到设备驱动中的回调函数将会被调用，回调函数在驱动中被定义。另一路通过专门对wifi进行管理的工具，如wpa_supplicant,hostapd,iwconfig等，经linux内核空间nl80211、cfg80211协议栈，交给mac80211；  

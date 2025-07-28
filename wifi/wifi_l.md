@@ -893,7 +893,21 @@ end
 monitor模式下可能会改变frame filter的规则，通过sdr驱动改变标志位改变mac80211状态，同时改变fpga过滤状态
 需要配合linux的mac80211协议栈和mac帧结构同时看
 #### spi module 
-控制ad9361的收发模式切换，物理上9361在fdd模式，通过写24bit的指令控制本振分频器的开关，
-实现快速切换的tdd工作模式，
-ps选用SPI0_SCLK_O，SPI0_MOSI_O,SPI0_MISO_I(直连9361),SPI0_SS_O，其他连到xpu？？？
-软核把输出信号给到openwifi_module spi0_csn,spi0_sclk,spi0_mosi，经过spi处理选择后给到ad9361；
+SPI主控制器，根据做完跨时钟域处理后的片选信号spi0_csn_fpga决定SPI总线由FPGA控制还是透传CPU信号，控制ad9361的收发模式切换，物理上9361在fdd模式，通过写24bit的指令控制本振分频器的开关，实现快速切换的tdd工作模式。  
+
+DISABLED状态禁用SPI控制，AD9361正在射频校准，执行start_ops函数时启动该模块。
+IDLE在复位或一次传输结束后进入，检测发射结束tx_chain_on边沿，准备发送指令
+ACTIVE在需要开启或关闭发射通道且CPU未占用总线，按照SPI协议发送24位数据，CPU突然占用则返回DISABLED或正常返回IDLE
+`define SPI_HIGH 24'h088A01 关闭Tx Synth VCO ALC Power
+`define SPI_LOW 24'h008A01
+![ad9361_spi](./picture/ad9361_spi.JPG)  
+![ad9361_tx](./picture/ad9361_tx.JPG)  
+AD9361指令，AD9361_Reference_Manual_UG-570中113页，配置分两个环节，第一个环节是16位的控制字，第二个环节是具体写入的参数
+以24'h088A01为例，从低位开始写入，data[0] = 1表示写入，data[3:1] = 000表示写入1B，data[5:4] = 00保留字不使用，data[15:6] = 0x051表示写入起始地址，data[23:16] = 0x08表示写入的寄存器映射值，查找AD9361_Register_Map_Reference_Manual_UG-671.pdf。
+
+对于wifi芯片，典型收发模式切换的时间为1us，对于零中频架构的AD9361来说再TDD模式下最小的turnaround time为18us，包括模式切换后的校准，PLL锁定，DAC上电，数据通道内部缓存的刷新。因此选用了FDD模式下工作，收发通道的本振都同时工作，存在本振泄露。收变到发状态需要640ns(480ns以50M写入24位数据+约160ns混频器上电时间)，发变到收需要480ns，一旦写入就断电了。
+
+实验表明，MCS 0 2.4Ghz，通信灵敏度可以到达-85dBm,5Ghz可以打到-85dBm
+
+
+ps选用SPI0_SCLK_O，SPI0_MOSI_O,SPI0_MISO_I(直连9361),SPI0_SS_O 

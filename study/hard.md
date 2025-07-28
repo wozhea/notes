@@ -313,20 +313,118 @@ initial³öÏÖÔÚÉè¼ÆÎÄ¼þÖÐ£¬Ò»°ãÖ»ÊÇÓÃÓÚ³õÊ¼»¯£¬ÓÃÓÚram¡¢countµÈ£¬Ïàµ±ÓÚÈí¼þµÄ³õÊ¼»
 Ò»¸öÄ£¿éÄÚ¹ý³Ì½á¹¹always¿éºÍinitial£¨²»¿É×ÛºÏ£©Ö®¼ä²¢ÐÐ£¬½á¹¹¿éÄÚ¿ÉÒÔÀí½âÎªË³ÐòÖ´ÐÐ£¬·Ç×èÈûÓï¾ä³ýÍâ£¬¸ö initial Óï¾ä»ò always Óï¾ä¶¼»á²úÉúÒ»¸ö¶ÀÁ¢µÄ¿ØÖÆÁ÷£¬Ö´ÐÐÊ±¼ä¶¼ÊÇ´Ó 0 Ê±¿Ì¿ªÊ¼
 # CÓïÑÔ
 ### ¸ÅÄî
-CÔ´ÎÄ¼þ-Ô¤´¦Àí-±àÒë£¨.s£©-»ã±à(.o)-Á´½Ó(+++)-¿ÉÖ´ÐÐÎÄ¼þ
+CÔ´ÎÄ¼þ-Ô¤´¦Àí£¨define,include£©-±àÒë£¨.s£©-»ã±à(.o)-Á´½Ó(+++)-¿ÉÖ´ÐÐÎÄ¼þ
+
 GCC,×î³õÈ«ÃûGNU C Compiler£¬Ëæ×ÅÖ§³ÖÓïÑÔÔ½À´Ô½¶à£¬Ãû³Æ±ä³ÉÁËGNU Compiler Collection,·­Òë¹Ù
 gcc -o Êä³öÎÄ¼þÃû ÊäÈëÎÄ¼þÃû 
+gcc -I ²éÕÒÍ·ÎÄ¼þÄ¿Â¼
+gcc -DÖ±½Ó¸úÔ¤¶¨ÒåºêÃû
+Ô¤´¦ÀíµÄÊ¹ÓÃ
+```
+#define ºêÃû ºêÌå ²»½øÐÐÓï·¨¼ì²é£¬¼ÓÀ¨ºÅ£¬ºêÃû´óÐ´
+#define DAY(x)      myday##x    Á¬½Ó×Ö·û
 
-### ±äÁ¿³£Á¿
+Ô¤¶¨Òåºê£º
+_FUNCTON_     º¯ÊýÃû£¬%s
+_LINE_          ÐÐºÅ,%s
+_FILE_          ÎÄ¼þÃû,%d
+
+```
+
+CÓïÑÔ²Ù×÷¶ÔÏó£ºÄÚ´æ£¬ÄÚ´æÀàÐÍµÄ×ÊÔ´£¬LCD»º´æ£¬LEDµÆµÈ
+ÈçºÎÏÞÖÆÄÚ´æµÄ´óÐ¡£¿Í¨¹ý¹Ø¼ü×Ö¡£´óÐ¡Ò²ºÍ±àÒëÆ÷ÓÐ¹Ø
+ÈçºÎ¶ÔÄÚ´æ×ÊÔ´´æ·ÅÎ»ÖÃµÄÏÞÖÆ£¿Í¨¹ý´æ´¢ÀàÐÍÐÞÊÎ·û
+### ¹Ø¼ü×Ö
+Ó²¼þÐ¾Æ¬×îÐ¡²Ù×÷µ¥Î»bit£¬Èí¼þ²Ù×÷×îÐ¡µ¥Î»Byte
+
+Êý¾ÝÀàÐÍ
+sizeof()ÊÇ¹Ø¼ü×Ö£¬²»ÊÇº¯ÊýÃû£¬±àÒëÆ÷¸øÎÒÃÇ²é¿´ÄÚ´æ¿Õ¼äÈÝÁ¿µÄÒ»¸ö¹¤¾ß
+char Ò»°ã1B
+int Ò»°ã4B
+long 4B,short Ò»°ã2B
+float 4B
+double 8B
+
+×Ô¶¨ÒåÊý¾ÝÀàÐÍ£¬ÔªËØ¼¯ºÏ
+½á¹¹Ìåstruct 
+ÁªºÏÌåunion£¬¹²ÓÃÆðÊ¼µØÖ·
+Ã¶¾Ùenum£¬ÕûÐÍ³£Á¿µÄ¼¯ºÏ
+Êý¾ÝÀàÐÍ±ðÃû typedef
+
+### ±äÁ¿³£Á¿ÐÞÊÎÀàÐÍ
 ±äÁ¿¶¨Òå:[´æ´¢ÀàÐÍ] Êý¾ÝÀàÐÍ ±êÊ¶·û = Öµ
                    TYPE     NAME = VALUE£»
         Êý¾ÝÀàÐÍ£º»ù±¾Êý¾ÝÀàÐÍ+¹¹ÔìÀàÐÍ
         Öµ£ºÒªÆ¥Åä
         ´æ´¢ÀàÐÍ£ºauto static register extern(ËµÃ÷ÐÍ)
-                 auto£ºÄ¬ÈÏ£¬¿éÄÚ£¬×Ô¶¯·ÖÅä¿Õ¼ä£¬×Ô¶¯»ØÊÕ¿Õ¼ä
-                 register£º(½¨ÒéÐÍ£¬ÓÉ±àÒëÆ÷Èçgcc¾ö¶¨ÊÇ·ñ±àÒëÎªregisterÀàÐÍ)¼Ä´æÆ÷ÀàÐÍ£¬Ö»ÄÜ¶¨Òå¾Ö²¿±äÁ¿£¬²»ÄÜ¶¨ÒåÈ«¾Ö±äÁ¿£»¿éÄÚ£¬´óÐ¡ÓÐÏÞÖÆ£¬Ö»ÄÜ¶¨Òå32Î»´óÐ¡µÄÊý¾ÝÀàÐÍ£¬Èçdouble¾Í²»¿ÉÒÔ£¬¼Ä´æÆ÷Ã»ÓÐµØÖ·£¬ËùÒÔÒ»¸ö¼Ä´æÆ÷ÀàÐÍµÄ±äÁ¿ÎÞ·¨´òÓ¡³öµØÖ·²é¿´»òÊ¹ÓÃ¡£
+                 
+                 auto£ºÄ¬ÈÏ£¬¿éÄÚ£¬×Ô¶¯·ÖÅä¿Õ¼ä£¬×Ô¶¯»ØÊÕ¿Õ¼ä£¬¿É¶Á¿ÉÐ´£¬ÇøÓòÈç¹ûÔÚ{}ÔòÔÚÕ»¿Õ¼ä
+                 
+                 register£º(½¨ÒéÐÍ£¬ÓÉ±àÒëÆ÷Èçgcc¾ö¶¨ÊÇ·ñ±àÒëÎªregisterÀàÐÍ)¼Ä´æÆ÷ÀàÐÍ£¬Ö»ÄÜ¶¨Òå¾Ö²¿±äÁ¿£¬²»ÄÜ¶¨ÒåÈ«¾Ö±äÁ¿£»¿éÄÚ£¬´óÐ¡ÓÐÏÞÖÆ£¬Ö»ÄÜ¶¨Òå32Î»´óÐ¡µÄÊý¾ÝÀàÐÍ£¬Èçdouble¾Í²»¿ÉÒÔ£¬¼Ä´æÆ÷Ã»ÓÐµØÖ·£¬ËùÒÔÒ»¸ö¼Ä´æÆ÷ÀàÐÍµÄ±äÁ¿ÎÞ·¨´òÓ¡³öµØÖ·²é¿´»òÊ¹ÓÃ¡£CPU»º´æÆ÷£¬·ÃÎÊËÙ¶È¿ì£¬ÐèÒªÆµ·±·ÃÎÊ¡£&È¡µØÖ·¶Ôregister²»Æð×÷ÓÃ
+
                  static:¾²Ì¬ÐÍ£¬×Ô¶¯³õÊ¼»¯Îª0Öµ»ò¿ÕÖµ£¬²¢ÇÒÆä±äÁ¿µÄÖµÓÐ¼Ì³ÐÐÔ,Ö»±»¶¨ÒåÒ»´Î¡£³£ÓÃÓÚÐÞÊÎ±äÁ¿»òº¯Êý£¬ÐÞÊÎº¯ÊýÊ±·ÀÖ¹¶ÔÍâÀ©Õ¹£¬Ö»ÓÐµ±Ç°ÎÄ¼þ¿ÉÒÔµ÷ÓÃ¡£
+                ÐÞÊÎÈýÖÖÊý¾Ý£º
+                1¡¢º¯ÊýÄÚ²¿µÄ±äÁ¿
+                2¡¢º¯ÊýÍâ²¿µÄ±äÁ¿
+                3¡¢º¯ÊýµÄÐÞÊÎ·û
+
                  extern£ºÉùÃ÷ÐÍ£¬ÒâÎ¶×Å²»ÄÜ¸Ä±ä±»ËµÃ÷µÄ±äÁ¿µÄÀàÐÍ»òÖµ£¬±íÊ¾¶¨ÒåÔÚÆäËûÎÄ¼þ¡£
+                
+                const Ö»¶ÁµÄ±äÁ¿£¬½¨ÒéÐÍ
+
+                volatile ¸æÖª±àÒëÆ÷±àÒë·½·¨µÄ¹Ø¼ü×Ö£¬²»ÓÅ»¯±àÒë£¬·ÀÖ¹ÓÅ»¯Ö¸ÏòÄÚ´æµØÖ·£¬ÐÞÊÎ±äÁ¿µÄÖµ²»½ö½ö¿ÉÒÔÍ¨¹ýÈí¼þ£¬Ò²¿ÉÒÔÍ¨¹ýÆäËû·½Ê½£¨Ó²¼þÍâ²¿µÄÓÃ»§£©
+
+### ÔËËã·û
+ËãÊýÔËËã·û
+
+Âß¼­ÔËËã·û
+    ·Ç0ÎªÕæ
+
+Î»ÔËËã·û
+    ×óÒÆ²¹0
+    ÓÒÒÆ£¬·ûºÅ±äÁ¿ÓÐ¹Ø£¬¸ºÊý²¹1
+    ÉèÖÃÄ³Î»Îª¸ßµçÆ½£¬a = a | (0x1<<n), Çå³ýÄ³Ò»Î»£¬a = a & (~(0x01<<n));
+    ÕûÐÎ³£Á¿Î»ÊýºÍ±àÒëÆ÷Ïà¹Ø
+
+¸³ÖµÔËËã
+
+ÄÚ´æ·ÃÎÊ·ûºÅ
+    ()ÏÞÖÆ·û
+    []Êý×é£¬ÄÚ´æ·ÃÎÊµÄID·ûºÅ
+    {}º¯ÊýÌåµÄÏÈÖ§¸¶
+    ->
+    &È¡µØÖ·£¬ *Ö¸Õë
+
+### Ö¸Õë
+Ö¸Õë±äÁ¿£º´æ·ÅÖ¸ÕëÕâ¸ö¸ÅÄîµÄºÐ×Ó
+    1.·ÖÅäÒ»¸öºÐ×Ó£¬ºÐ×ÓÒª¶à´ó£¿
+        ÔÚ32bitÏµÍ³ÖÐ£¬Ö¸Õë¾Í4¸ö×Ö½Ú
+    2.ºÐ×ÓÀï´æ·ÅµÄµØÖ·£¬ËùÖ»ÏëÄÚ´æµÄ¶ÁÈ¡·½·¨ÊÇÊ²Ã´£¿
+        char *pÒ»´Î¶ÁÈ¡1¸ö×Ö½Ú£¬int *pÒ»´Î¶ÁÈ¡4¸ö×Ö½Ú
+
+const char *p       ×Ö·û´®£¬Ö¸ÏòµÄÄÚ´æ¿Õ¼äÖ»¶Á£¬Ö¸Ïò¿É±ä
+char * const p      Ó²¼þ×ÊÔ´£¬Ö¸ÏòµØÖ·²»¿É±ä
+
+Ö¸ÕëµÄ¼Ó¼õ·¨£¬¼Ó¼õµÄÖ¸ÕëµÄµ¥Î»
+Ö¸ÕëµÄÂß¼­²Ù×÷·û£¬Í¬ÖÖÀàÐÍ±È½Ï²ÅÓÐÒâÒå£¬Ò»°ã¸úµØÖ·±È½Ï
+
+¶þÎ¬Ö¸Õë£¬ÓÃ´æ´¢µØÖ·À´Àí½â£¬ÒÔNULLÎª½áÊø±êÖ¾
+
+main(int argc,char **argv){
+    ¾ÍÏñÒ»¸ö¶þÎ¬Ö¸Õë
+}
+### Êý×é
+¶¨ÒåÒ»¸ö¿Õ¼ä£¬1.´óÐ¡ 2.¶ÁÈ¡·½Ê½
+±êÊ¶·ûÊý×éÃû£¬Ö»ÊÇÒ»¸ö³£Á¿·ûºÅ£¬ÓëÊý×é²»Í¬£¬²»¿ÉÒÔ·Åµ½µÈºÅ×ó±ß£¬
+
+    1 ¶¨Òå
+        [´æ´¢ÀàÐÍ]  Êý¾ÝÀàÐÍ ±êÊ¶·û [ÏÂ±ê]
+    2 ³õÊ¼»¯
+        static³õÊ¼»¯È«Îª0
+    3 ÔªËØÒýÓÃ
+    4 Êý×éÃû
+        Êý×éÃû±íÊ¾µØÖ·µÄ³£Á¿£¬Ò²ÊÇÊý×éµÄÆðÊ¼µØÖ·
+    5 Êý×éÔ½½ç
 ### ÊäÈëÊä³ö
 input & ouput -> I/O(±ê×¼IO,ÎÄ¼þIO)
 1.¸ñÊ½»¯ÊäÈëÊä³öº¯Êý£ºscanf,printf
@@ -345,17 +443,7 @@ input & ouput -> I/O(±ê×¼IO,ÎÄ¼þIO)
                     gets²»¼ì²ébuffer£¬½¨ÒéÊ¹ÓÃfgets£¬getlineÌæ´ú
 ### Á÷³Ì¿ØÖÆ
 if goto gotoÊµÏÖÎÞÌõ¼þÌø×ª£¬²»ÄÜ¿çº¯ÊýÌø×ª
-### Êý×é
-Ò»Î»Êý×é
-    1 ¶¨Òå
-        [´æ´¢ÀàÐÍ]  Êý¾ÝÀàÐÍ ±êÊ¶·û [ÏÂ±ê]
-    2 ³õÊ¼»¯
-        static³õÊ¼»¯È«Îª0
-    3 ÔªËØÒýÓÃ
-    4 Êý×éÃû
-        Êý×éÃû±íÊ¾µØÖ·µÄ³£Á¿£¬Ò²ÊÇÊý×éµÄÆðÊ¼µØÖ·
-    5 Êý×éÔ½½ç
-    Ã°ÅÝÅÅÐò
+
 # ICÉè¼Æ
 ### Ãû´Ê
 Êý×ÖICÉè¼Æ»ù±¾Á÷³Ì£ºÉè¼Æ¡ªÑéÖ¤¡ªRTL freeze¡ª×ÛºÏ¡ªSTA£¨¾²Ì¬Ê±Ðò·ÖÎö£©¡ªDFT¡ªPR£¨×Ô¶¯²¼¾Ö²¼Ïß£©¡ªDesign sign-off
@@ -461,10 +549,10 @@ N¹µµÀMOS¹ÜºÍP¹µµÀMOSµ¼Í¨Ìõ¼þÇø±ðÔÚÓÚÕ¤Â©µçÑ¹Õý¸º£¬Õ¤Â©µçÑ¹·ûºÏµ¼Í¨µçÑ¹Ê±£¬Â©Ô´µç
 Serial Peripheral Interface£¬´®ÐÐÍâÎ§Éè±¸½Ó¿Ú¡£È«Ë«¹¤£¬Í¬²½Í¨ÐÅ×ÜÏß¡£
 ËÄÏßSPI×ÜÏßÖ»ÐèÒªËÄÌõÏß£¬(Ö÷»ú)MOSI£¨master output slave input £©£¬MISO¡£(´Ó»ú)SIMO,SOMI¡£»¹ÓÐSCLKÊ±ÖÓÐÅºÅ£¬Ö»ÄÜÓÉÖ÷»ú²úÉú½»¸ø´Ó»ú¡£SS»ò(CS)Æ¬Ñ¡ÐÅºÅ¡£
 µ¥Ö÷Éè±¸Í¨ÐÅÐ­Òé£¬µ±Ö÷Éè±¸Ïë¶Á/Ð´Éè±¸Ê±£¬Í¨¹ýÀ­µÍ¶ÔÓ¦´ÓÉè±¸Æ¬Ñ¡SSÏß(µÍÓÐÐ§)£¬ÔÙÍ¨¹ýÊý¾ÝÏß´«ÊäÊý¾Ý¡£
-SPIÃ»ÓÐ¶ÁºÍÐ´Ö®·Ö£¬ÔÚÃ¿¸ö Clock ÖÜÆÚÄÚ£¬SPI Éè±¸¶¼»á·¢ËÍ²¢½ÓÊÕÒ»¸ö bit ´óÐ¡µÄÊý¾Ý(²»¹ÜÖ÷Éè±¸ºÃ»¹ÊÇ´ÓÉè±¸)£¬¼´Ã¿¸öÊ±ÖÓÏÂSPIÉè±¸¶¼ÊÇÔÚ½»»»Êý¾Ý
+SPIÃ»ÓÐ¶ÁºÍÐ´Ö®·Ö£¬ÔÚÃ¿¸ö Clock ÖÜÆÚÄÚ£¬SPI Éè±¸¶¼»á·¢ËÍ²¢½ÓÊÕÒ»¸ö bit ´óÐ¡µÄÊý¾Ý(²»¹ÜÖ÷Éè±¸ºÃ»¹ÊÇ´ÓÉè±¸)£¬¼´Ã¿¸öÊ±ÖÓÏÂSPIÉè±¸¶¼ÊÇÔÚ½»»»Êý¾Ý£¬Ò»´ÎÊý¾Ý½»»»Î»Ò»¸ö×Ö½Ú£¬¶ÁÐ´Êý¾ÝÍ¬Ê±²Ù×÷¡£SPIÃ»ÓÐ¹æ¶¨×î´ó´«ÊäËÙÂÊ£¬Ã»ÓÐµØÖ··½°¸£¬Ò²Ã»¹æ¶¨Í¨ÐÅÓ¦´ð»úÖÆ£¬Ã»ÓÐ¹æ¶¨Á÷¿ØÖÆ¹æÔò
 
-CPOL£¨Clock Polarity£©Ê±ÖÓ¼«ÐÔ£¬±íÊ¾¿ÕÏÐÊ±Ê±ÖÓÊÇ¸ß»¹ÊÇµÍµçÆ½£¬0±íÊ¾µÍµçÆ½¡£CHPA(Clock Phase)Ê±ÖÓÏàÎ»¾ö¶¨µÚÒ»¸ö±ßÑØ»¹ÊÇµÚ¶þ¸ö±ßÑØ¿ªÊ¼½øÐÐ²ÉÑù£¬0±íÊ¾µÚÒ»¸ö±ßÑØ²ÉÑù¡£
-
+SPIÓÐËÄÖÖ¹¤×÷Ä£Ê½£¬CPOL£¨Clock Polarity£©Ê±ÖÓ¼«ÐÔ£¬±íÊ¾¿ÕÏÐÊ±Ê±ÖÓÊÇ¸ß»¹ÊÇµÍµçÆ½£¬0±íÊ¾µÍµçÆ½¡£CHPA(Clock Phase)Ê±ÖÓÏàÎ»¾ö¶¨µÚÒ»¸ö±ßÑØ»¹ÊÇµÚ¶þ¸ö±ßÑØ¿ªÊ¼½øÐÐ²ÉÑù£¬0±íÊ¾µÚÒ»¸ö±ßÑØ²ÉÑù¡£Í¨ÐÅË«·½±ØÐë¹¤×÷ÔÚÍ¬Ò»Ä£Ê½ÏÂ¡£
+![spi](./screenshot/SPI.png)  
 
 
 ### I2C
@@ -786,10 +874,6 @@ Zynq UltraScale+ RFSoC data converterµØÃæADC²ÉÓÃ4GSPS²ÉÑùËÙÂÊ£¬Ò»¸öADCÒÔAXISÐÎÊ½
     µÚÈý¼¶2¸ö8µãDFT£¬ÑÓÊ±5¸öÊ±ÖÓÖÜÆÚ
     µÚËÄ¼¶1¸ö16µãDFT£¬ÑÓÊ±5¸øÊ±ÖÓÖÜÆÚ
 µÚËÄ²½¶ÔÆæÊý×ÓÐÅµÀÊä³ö½øÐÐ·ûºÅ·´×ª£¬³ËÒÔ(-1)^n
-
-
-
-
 
 
 

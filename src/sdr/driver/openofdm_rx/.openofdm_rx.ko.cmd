@@ -1,1 +1,0 @@
-cmd_/home/flow/openwifi/driver/openofdm_rx/openofdm_rx.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id=sha1  -T scripts/module.lds -o /home/flow/openwifi/driver/openofdm_rx/openofdm_rx.ko /home/flow/openwifi/driver/openofdm_rx/openofdm_rx.o /home/flow/openwifi/driver/openofdm_rx/openofdm_rx.mod.o;  true

@@ -1,4 +1,0 @@
-all:
-{
-        system_top.bit /* Bitstream file name */
-}

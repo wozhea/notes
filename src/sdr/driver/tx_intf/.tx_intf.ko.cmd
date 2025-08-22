@@ -1,1 +1,0 @@
-cmd_/home/flow/openwifi/driver/tx_intf/tx_intf.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id=sha1  -T scripts/module.lds -o /home/flow/openwifi/driver/tx_intf/tx_intf.ko /home/flow/openwifi/driver/tx_intf/tx_intf.o /home/flow/openwifi/driver/tx_intf/tx_intf.mod.o;  true

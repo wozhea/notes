@@ -1,5 +1,5 @@
 意义：
-无人机群远距离自组织多跳网络，机间链路协作，物理层，动态路由协议
+远距离自组织多跳网络，机间链路协作，物理层，动态路由协议
 CSI感知
 
 Another way to limit Tx leakage is to switch to RF port B during receiving, which is grounded on some boards. This has a slightly faster reaction time (since powering the Tx LO divider on takes about 160ns), but cannot totally suppress self-interference.

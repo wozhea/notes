@@ -1,1 +1,0 @@
-cmd_/home/flow/openwifi/driver/openofdm_tx/Module.symvers := sed 's/ko$$/o/' /home/flow/openwifi/driver/openofdm_tx/modules.order | scripts/mod/modpost -m    -o /home/flow/openwifi/driver/openofdm_tx/Module.symvers -e -i Module.symvers   -T -

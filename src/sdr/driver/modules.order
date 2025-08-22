@@ -1,6 +1,0 @@
-/home/flow/openwifi/driver/sdr.ko
-/home/flow/openwifi/driver/openofdm_rx/openofdm_rx.ko
-/home/flow/openwifi/driver/openofdm_tx/openofdm_tx.ko
-/home/flow/openwifi/driver/tx_intf/tx_intf.ko
-/home/flow/openwifi/driver/rx_intf/rx_intf.ko
-/home/flow/openwifi/driver/xpu/xpu.ko

@@ -1,2 +1,0 @@
-/home/flow/openwifi/driver/rx_intf/rx_intf.o
-

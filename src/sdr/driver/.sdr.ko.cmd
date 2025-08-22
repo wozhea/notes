@@ -1,1 +1,0 @@
-cmd_/home/flow/openwifi/driver/sdr.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id=sha1  -T scripts/module.lds -o /home/flow/openwifi/driver/sdr.ko /home/flow/openwifi/driver/sdr.o /home/flow/openwifi/driver/sdr.mod.o;  true

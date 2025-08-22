@@ -1,1 +1,0 @@
-cmd_/home/flow/openwifi/driver/xpu/xpu.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id=sha1  -T scripts/module.lds -o /home/flow/openwifi/driver/xpu/xpu.ko /home/flow/openwifi/driver/xpu/xpu.o /home/flow/openwifi/driver/xpu/xpu.mod.o;  true

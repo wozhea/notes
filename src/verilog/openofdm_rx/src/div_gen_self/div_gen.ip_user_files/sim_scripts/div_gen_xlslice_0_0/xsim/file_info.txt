@@ -1,2 +1,0 @@
-div_gen_xlslice_0_0.v,verilog,xil_defaultlib,../../../src/div_gen_xlslice_0_0/sim/div_gen_xlslice_0_0.v,
-glbl.v,Verilog,xil_defaultlib,glbl.v

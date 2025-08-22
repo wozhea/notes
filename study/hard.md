@@ -351,6 +351,7 @@ xpm_fifo£ºwr_data_countÊýÁ¿ÔÚÉî¶ÈºÍÉî¶È+1ÇÐ»»£¬ÈçdepthÎª16µÄfifo£¬wr_data_countÒ
 initial³öÏÖÔÚÉè¼ÆÎÄ¼þÖÐ£¬Ò»°ãÖ»ÊÇÓÃÓÚ³õÊ¼»¯£¬ÓÃÓÚram¡¢countµÈ£¬Ïàµ±ÓÚÈí¼þµÄ³õÊ¼»¯£¬²»»áÉú³ÉÊµ¼ÊµçÂ·
 Ò»¸öÄ£¿éÄÚ¹ý³Ì½á¹¹always¿éºÍinitial£¨²»¿É×ÛºÏ£©Ö®¼ä²¢ÐÐ£¬½á¹¹¿éÄÚ¿ÉÒÔÀí½âÎªË³ÐòÖ´ÐÐ£¬·Ç×èÈûÓï¾ä³ýÍâ£¬¸ö initial Óï¾ä»ò always Óï¾ä¶¼»á²úÉúÒ»¸ö¶ÀÁ¢µÄ¿ØÖÆÁ÷£¬Ö´ÐÐÊ±¼ä¶¼ÊÇ´Ó 0 Ê±¿Ì¿ªÊ¼
 # CÓïÑÔ
+## Óï·¨
 ### ¸ÅÄî
 CÔ´ÎÄ¼þ-Ô¤´¦Àí£¨define,include£©-±àÒë£¨.s£©-»ã±à(.o)-Á´½Ó(+++)-¿ÉÖ´ÐÐÎÄ¼þ
 
@@ -523,7 +524,17 @@ malloc:memory allocate
 Á¬Ðø¿Õ¼äµÄ´«µÝ£¬
 ×Ö·û¿Õ¼ä£ºchar *
 ·Ç×Ö·û¿Õ¼ä:void *
+## ¼ÆËã»úÖªÊ¶µã
+### Êý¾Ý½á¹¹
+#### ÏßÐÔ±í
+Ï¸·ÖÎªË³Ðò±í£¬Á´±í£¬Õ»£¬¶ÓÁÐ
 
+Õ»LIFO£¬µØÖ·ÓÉ¸ßÏòµÍ
+¶ÓÁÐFIFO
+#### Ê÷½á¹¹
+Ò»¶Ô¶à
+#### Í¼´æ´¢½á¹¹
+¶à¶Ô¶à
 # ICÉè¼Æ
 ### Ãû´Ê
 Êý×ÖICÉè¼Æ»ù±¾Á÷³Ì£ºÉè¼Æ¡ªÑéÖ¤¡ªRTL freeze¡ª×ÛºÏ¡ªSTA£¨¾²Ì¬Ê±Ðò·ÖÎö£©¡ªDFT¡ªPR£¨×Ô¶¯²¼¾Ö²¼Ïß£©¡ªDesign sign-off
@@ -998,17 +1009,43 @@ Zynq UltraScale+ RFSoC data converterµØÃæADC²ÉÓÃ4GSPS²ÉÑùËÙÂÊ£¬Ò»¸öADCÒÔAXISÐÎÊ½
 ½ÓÊÕ»úÁéÃô¶ÈÔ¼-94dBm,ÁéÃô¶È¼ÆËã,10log(KTB)+NF+SNR,-174dBm+70+3+10.5-4 = -94.5dBm;
 50KMÂ·¾¶ËðºÄ135.96dBm
 
+Ö¡¸ñÊ½
+4B+13B+2B+2B+4B+839+32B+128B£»
+Í¬²½Í·  Ò£²â  Ö¡³¤  Ö¡¼ÆÊý  ÓÐÐ§Êý¾ÝÖ¡Í·  ÓÐÐ§Êý¾ÝÖ¡³¤  CRC  LDPCÐ£ÑéÎ»£»
+Ò»Ö¡¹²1024B,Í¬²½Í·¹²4B£¬ÓÃÓÚFarrow²åÖµ+Î»Í¬²½£¬²»½øÐÐ±àÂë£»Ò£²âÐÅÏ¢Í·¹²13B£¬2BÖ¡³¤£¬2BÖ¡¼ÆÊý£»Êý¾ÝÎ»¹²875B£¬ÆäÖÐ2BÖ¡Í·EB90£¬2BÊý¾Ý³¤¶È£¬Î²²¿32Î»CRC£¬ÓÐÐ§payload¹²839B£¬Êý¾Ý²»×ãÔòÌî³ä33£»²ÉÓÃCCSDS(8176,7156£¬7/8)LDPC±àÂë£¬892B×Ö½Ú¼Ó18bitµÄ0¹²7154Î»Êý¾Ý×÷Îª±àÂëÆ÷ÊäÈë£¬±àÂëºó²»·¢ËÍÊ×18bit£¬Î²²¹2bitµÄ0¹²Êä³ö8160bit£¨8176-18+2£© 1020BÊý¾ÝÊä³ö¡£
+
+dpramÓÃÓÚ´æ´¢´ý·¢ËÍµÄÊý¾Ý£¬Í³¼Æ´ý·¢ËÍµÄÊý¾Ý¸öÊý¡£
+
+
+
+
+
+
+
+
+
+
+
+·ûºÅËÙÂÊ6Msps,ÏÈ½øÐÐ4¼¶ÄÚ²åµ½24Msps£¬ÔÙ½øÐÐ2±¶FIRÄÚ²åÂË²¨µ½48M¡£8±¶¹ý²ÉÑù£¬²ÉÑùËÙÂÊ48M¡£
+
 
 
 
 
 
 ### QPSKµ÷ÖÆ½âµ÷
-PSºÍPL½»»¥µÄFIFO¹²64KÉî¶È£¬ÓÃÓÚ»º´æÍøÂç°ü¡£
-±ÈÌØÊý¾Ý¾­¹ý×éÖ¡£¬ÐÅµÀ±àÂë£¬×é³É¹Ì¶¨Ö¡¸ñÊ½ËÍÈëQSPKµ÷ÖÆÆ÷¡£
-![Ö¡½á¹¹](./screenshot/Ö¡½á¹¹.JPG)  
-Ò»Ö¡¹²1024B,²â¾àÍ·¹²29B£¬Êý¾ÝÎ»¹²848B£¬ÆäÖÐ2BÖ¡Í·EB90£¬2BÊý¾Ý³¤¶È£¬ÓÐÐ§payload¹²848B£¬Êý¾Ý²»×ãÔòÌî³ä33¡£LDPC±àÂëÐ§ÂÊ1/2£¬ÓÐÐ§Êý¾ÝËÙÂÊ8.2M¡£
-±ÈÌØÊý¾Ý¾­²¢´®×ª»»£¬¼«ÐÔ×ª»»£¬Âö³å³ÉÐÍºóIQÁ½Â·½»¸øAD9361(ÁãÖÐÆµ¼Ü¹¹)
+PSºÍPL½»»¥µÄFIFO,PS¶Ëfifo32Î»512Éî¶È£¬PL¶Ë32Î»16KÉî¶È£¬ÓÃÓÚ»º´æÍøÂç°üÊý¾Ý¡£
+
+#### PSPL½Ó¿Ú
+·¢Éä»ú£¬32Î»bitÊý¾ÝÍ¨¹ýaxis_stream¸ñÊ½ÏòÍâÊä³ö¡£Í¨¹ýarm_intf½«Êý¾Ý½ÓÈëµ÷ÖÆ½âµ÷Ö÷Ä£¿éµÄfifo¡£Ö÷Ä£¿éÊä³ö´ý·¢ËÍ8Î»Êý¾ÝÉî¶È£¬½Ó¿ÚÄ£¿éÊä³öÊý¾ÝºÍvalidÐÅºÅ¡£
+Ö÷ÒªÊ±Ðò£º¸´Î»ºó½øÈë¿ÕÏÐ×´Ì¬£¬µ±Ö÷Ä£¿é´ý·¢ËÍÊý¾ÝÐ¡ÓÚ8KÊ±½øÈë¶ÁÈ¡axis×´Ì¬£¬Ëø´æÒ»¸ö32Î»µÄÊý¾Ýºó£¬·Ö4´ÎÐ´ÈëÖ÷Ä£¿é£¬ÔÙ´Î½øÈë¿ÕÏÐ×´Ì¬¡£
+
+½ÓÊÕ»ú£¬Êý¾ÝÏÈ½øÈërecv_qpsk£¬°´ÕÕÖ¡¸ñÊ½½øÐÐÒ£²âÊý¾ÝºÍÓÐÐ§Êý¾Ý½ÓÊÕ£¬²¢½øÐÐcrcÐ£Ñé¡£
+Ö®ºóËÍÈëmac_anlyze£¬°´ÕÕÍøÂç°ü³¤£¬EB90ºÍÎïÀí°ü³¤³¤ÌáÈ¡ÓÐÐ§ÔØºÉ£¬½«·Ö¿ªµÄÍøÂç°üÆ´³ÉÒ»¸ö
+Ö®ºóËÍÈë×éaxisÊý¾Ý×´Ì¬»ú¡£
+
+
+
 
 
 ½ÓÊÕ»úÄÃµ½IQÁ½Â·Êý¾Ýºó£¬Êý×ÖËøÏà»·½øÐÐGardner²åÖµÎ»Í¬²½Ëã·¨£¬ÔÙÓÃÔØ²¨Í¬²½¸ù¾Ý²âÖ¡Í·ºÍÊý¾ÝÍ·¶ÔÓÐÐ§Êý¾Ý½øÐÐÅÐ¾ö£¬×îºó½øÐÐLDPCÐ£Ñé¡£

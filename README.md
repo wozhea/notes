@@ -1,2 +1,2 @@
 # notes
-just for take notes and read
+just take some notes for myself in the study process
